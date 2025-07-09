@@ -1,0 +1,24 @@
+version: "3"
+services:
+  processor:
+    build: .
+    volumes:
+      - ./local_docs:/app/local_docs
+      - ./output_docs:/app/output_docs
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - S3_ENDPOINT=http://minio:9000
+    depends_on:
+      - minio
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data
+    volumes:
+      - ./minio_data:/data
