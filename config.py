@@ -10,10 +10,34 @@ CONFIG = {
         ".doc": "UnstructuredWordDocumentLoader",
         ".html": "UnstructuredHTMLLoader",
     },
-    "splitter": {
-        "chunk_size": 500,
-        "chunk_overlap": 50,
-        "separators": ["\n\n", "\n", " ", ""]
+    "splitters": {
+        ".txt": {
+            "type": "recursive",
+            "chunk_size": 500,
+            "chunk_overlap": 50,
+            "separators": ["\n\n", "\n", " ", ""]
+        },
+        ".pdf": {
+            "type": "token",
+            "chunk_size": 500,
+            "chunk_overlap": 50,
+            "encoding_name": "cl100k_base"
+        },
+        ".docx": {
+            "type": "nltk",
+            "chunk_size": 800,
+            "chunk_overlap": 100,
+            "language": "russian"
+        },
+        ".doc": {
+            "type": "nltk",
+            "chunk_size": 800,
+            "chunk_overlap": 100,
+            "language": "russian"
+        },
+        ".csv": {
+            "type": "none"
+        }
     },
     "s3_bucket": "files",
     "s3_prefix": "",

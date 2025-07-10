@@ -7,3 +7,4 @@ botocore
 chardet
 pydantic
 typing-extensions
+tiktoken>=0.9.0

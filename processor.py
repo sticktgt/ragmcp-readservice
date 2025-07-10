@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from .output.saver import save_doc_text, save_metadata_entry
 from .loaders.document_loader import load_document
 from .sources.local import LocalFileSource
@@ -48,9 +49,12 @@ def process_streaming():
                     logger.info(f"Skipping {file_id}, Hashcode {source_hash}: already exists in Milvus.")
                     continue
 
+                ext = Path(file_id).suffix.lower()
+
                 try:
-                    for split_doc in split_documents_lazy(docs, CONFIG["splitter"]):
+                    for split_doc in split_documents_lazy(docs, file_ext=ext, config=CONFIG["splitters"]):
                         split_doc.metadata.update(meta)
+                        # Save the documents text and metadata for debuging
                         save_doc_text(split_doc, doc_index, output_dir)
                         save_metadata_entry(split_doc, doc_index, meta_path)
                         doc_index += 1
