@@ -17,7 +17,7 @@ CONFIG = {
     },
     "s3_bucket": "files",
     "s3_prefix": "",
-    "endpoint_url": "http://localhost:9000",
+    "endpoint_url": "http://localhost:9001",
     "aws_access_key_id": "minioadmin",
     "aws_secret_access_key": "minioadmin",
     # "aws_access_key_id": os.getenv("S3_ACCESS_KEY", "minioadmin"),

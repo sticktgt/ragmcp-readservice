@@ -4,11 +4,15 @@ from .loaders.document_loader import load_document
 from .sources.local import LocalFileSource
 from .sources.s3 import S3FileSource
 from .config import CONFIG
-from .utils.splitters import split_documents
+from .utils.splitters import split_documents_lazy
 from readservice.utils.logger import get_logger
 import traceback
 
 logger = get_logger()
+
+def is_already_uploaded(hashcode: str) -> bool:
+    # Stub method - replace with real Milvus filter
+    return False
 
 def process_streaming():
     output_dir = CONFIG["output_dir"]
@@ -34,25 +38,24 @@ def process_streaming():
                     err_log.write(f"[SOURCE ERROR] {file_id}: {source_error}\n")
                     continue
 
-                docs, load_error = load_document(file_id, content)
+                docs, load_error, source_hash = load_document(file_id, content)
                 if load_error:
                     logger.error(f"[LOAD ERROR] {file_id}: {load_error}")
                     err_log.write(f"[LOAD ERROR] {file_id}: {load_error}\n")
                     continue
 
-                try:
-                    split_docs = split_documents(docs, config=CONFIG.get("splitter", {}))
-                except Exception as e:
-                    logger.error(f"[SPLIT ERROR] {file_id}: {e}")
-                    err_log.write(f"[SPLIT ERROR] {file_id}: {e}\n")
+                if source_hash and is_already_uploaded(source_hash):
+                    logger.info(f"Skipping {file_id}, Hashcode {source_hash}: already exists in Milvus.")
                     continue
 
-                for doc in split_docs:
-                    doc.metadata.update(meta)
-                    try:
-                        save_doc_text(doc, doc_index, output_dir)
-                        save_metadata_entry(doc, doc_index, meta_path)
+                try:
+                    for split_doc in split_documents_lazy(docs, CONFIG["splitter"]):
+                        split_doc.metadata.update(meta)
+                        save_doc_text(split_doc, doc_index, output_dir)
+                        save_metadata_entry(split_doc, doc_index, meta_path)
                         doc_index += 1
-                    except Exception as e:
-                        logger.error(f"[SAVE ERROR] {file_id} [chunk {doc_index}]: {e}")
-                        err_log.write(f"[SAVE ERROR] {file_id} [chunk {doc_index}]: {e}\n")
+                except Exception as e:
+                    traceback_str = traceback.format_exc()
+                    logger.debug(traceback_str)                      
+                    logger.error(f"[SPLIT ERROR] {file_id}: {e}")
+                    err_log.write(f"[SPLIT ERROR] {file_id}: {e}\n")
