@@ -39,6 +39,11 @@ CONFIG = {
             "type": "none"
         }
     },
+    "embedding": {
+        "endpoint": "http://localhost:5000/v1",
+        "model": "local-embedding-model",
+        "api_key": "dummy-key"
+    },
     "s3_bucket": "files",
     "s3_prefix": "",
     "endpoint_url": "http://localhost:9001",
@@ -48,5 +53,6 @@ CONFIG = {
     # "aws_secret_access_key": os.getenv("S3_SECRET_KEY", "minioadmin"),
     "use_ssl": False,
     "local_path": "/home/stickt/python/local_docs",
-    "output_dir": "./output_docs"
+    "output_dir": "./output_docs",
+    "debug_counters": True
 }

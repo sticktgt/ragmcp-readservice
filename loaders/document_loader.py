@@ -69,7 +69,6 @@ def load_document(file_id: str, content: Optional[bytes]) -> Tuple[Iterator[Docu
                 yield doc
  
         return _inject_metadata(docs), None, source_hash
-        # return docs, None, source_hash
     except Exception as e:
         error_message = f"Error processing {file_id}: {e}"
         traceback_str = traceback.format_exc()
