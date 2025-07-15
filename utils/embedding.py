@@ -8,20 +8,47 @@ import traceback
 
 logger = get_logger()
 
+# Optional: import real YandexGPT embedder if enabled
+try:
+    from langchain_community.embeddings.yandex import YandexGPTEmbeddings
+except ImportError:
+    YandexGPTEmbeddings = None
+
 def embed_documents(docs: Union[Document, List[Document]]) -> Tuple[List[dict], Optional[str]]:
     if isinstance(docs, Document):
         docs = [docs]    
-    try:
-        """Simulate embedding by returning dummy vectors with metadata."""
-        fake_vector = [round(0.01 * i, 5) for i in range(1, 6)]  # e.g., [0.01, 0.02, ...]
-        embedded = []
 
-        for doc in docs:
+    provider = CONFIG.get("embedding", {}).get("provider", "fake")
+
+    try:
+
+        if provider == "yandex":
+            if not YandexGPTEmbeddings:
+                raise ImportError("YandexGPTEmbeddings not available. Please install langchain-community")
+
+            api_key = CONFIG["yandex"]["api_key"]
+            folder_id = CONFIG["yandex"]["folder_id"]
+            embedder = YandexGPTEmbeddings(
+                api_key=api_key,
+                folder_id=folder_id,
+                grpc_metadata=[],
+                disable_request_logging=False,
+                sleep_interval=2.0,
+                doc_model_name="text-search-doc",   # Embedding for your document chunks
+                model_version="latest",
+            )
+            vectors = embedder.embed_documents([doc.page_content for doc in docs])
+        else:
+            # fallback to dummy vector
+            logger.debug("Using fake embedding provider for simulation.")
+            vectors = [[round(0.01 * i, 5) for i in range(1, 6)]] * len(docs)  # e.g., [0.01, 0.02, ...]
+
+        embedded = []
+        for doc, vector in zip(docs, vectors):
             embedded.append({
-                "embedding": fake_vector,
+                "embedding": vector,
                 "metadata": doc.metadata
             })
-        return embedded, None
 
         # embedder = OpenAIEmbeddings(
         #     openai_api_base=CONFIG["embedding"]["endpoint"],
@@ -29,6 +56,8 @@ def embed_documents(docs: Union[Document, List[Document]]) -> Tuple[List[dict], 
         #     model=CONFIG["embedding"]["model"]
         # )
         # vectors = embedder.embed_documents([doc.page_content for doc in docs])
+
+        return embedded, None
 
     except Exception as e:
         error_message = f"Embedding error: {e}"

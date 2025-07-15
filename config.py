@@ -1,6 +1,6 @@
 CONFIG = {
     "use_local": True,
-    "use_s3": True,
+    "use_s3": False,
 
     "file_types": {
         ".txt": "TextLoader",
@@ -8,7 +8,6 @@ CONFIG = {
         ".pdf": "PDFPlumberLoader",
         ".docx": "UnstructuredWordDocumentLoader",
         ".doc": "UnstructuredWordDocumentLoader",
-        ".html": "UnstructuredHTMLLoader",
     },
     "splitters": {
         ".txt": {
@@ -40,17 +39,24 @@ CONFIG = {
         }
     },
     "embedding": {
-        "endpoint": "http://localhost:5000/v1",
-        "model": "local-embedding-model",
-        "api_key": "dummy-key"
+        "provider": "yandex",  # yandex or "fake"
+    },
+    "yandex": {
+        "api_key": "###", # os.getenv("YANDEX_API_KEY", "")
+        "folder_id": "b1g2758uu6otr3b7s64e", # os.getenv("YANDEX_FOLDER_ID", "")
+    },
+    "milvus": {
+        "host": "localhost",
+        "port": 19530,
+        "collection": "doc_vectors",
+        "dim": 768,  # Yandex embedding dimension (mock or real)
+        "overwrite": False
     },
     "s3_bucket": "files",
     "s3_prefix": "",
     "endpoint_url": "http://localhost:9001",
-    "aws_access_key_id": "minioadmin",
-    "aws_secret_access_key": "minioadmin",
-    # "aws_access_key_id": os.getenv("S3_ACCESS_KEY", "minioadmin"),
-    # "aws_secret_access_key": os.getenv("S3_SECRET_KEY", "minioadmin"),
+    "aws_access_key_id": "minioadmin", # os.getenv("S3_ACCESS_KEY", "minioadmin"),
+    "aws_secret_access_key": "minioadmin", # os.getenv("S3_SECRET_KEY", "minioadmin"),
     "use_ssl": False,
     "local_path": "/home/stickt/python/local_docs",
     "output_dir": "./output_docs",

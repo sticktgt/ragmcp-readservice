@@ -9,14 +9,14 @@ from .utils.splitters import split_documents_lazy
 from .utils.embedding import embed_documents
 from .utils.logger import get_logger
 import traceback
+from .utils.milvus_store import MilvusStore
 
 from itertools import tee
 
 logger = get_logger()
 
-def is_already_uploaded(hashcode: str) -> bool:
-    # Stub method - replace with real Milvus filter
-    return False
+def is_already_uploaded(hashcode: str, store: MilvusStore) -> bool:
+    return store.document_exists(hashcode)
 
 def process_streaming():
     output_dir = CONFIG["output_dir"]
@@ -39,6 +39,7 @@ def process_streaming():
         "chunks": 0,
     }
     debug = CONFIG.get("debug_counters", False)
+    store = MilvusStore(CONFIG["milvus"])
 
     with open(error_path, "w", encoding="utf-8") as err_log:
         for source in sources:
@@ -66,7 +67,7 @@ def process_streaming():
                         docs, docs_copy = tee(docs)
                         counters["documents"] += sum(1 for _ in docs_copy)
 
-                    if source_hash and is_already_uploaded(source_hash):
+                    if source_hash and is_already_uploaded(source_hash, store):
                         logger.info(f"Skipping {file_id}, Hashcode {source_hash}: already exists in Milvus.")
                         continue
 
@@ -89,13 +90,27 @@ def process_streaming():
                             logger.error(f"[EMBED ERROR] {file_id}: {embed_error}")
                             err_log.write(f"[EMBED ERROR] {file_id}: {embed_error}\n")
                             continue
+                        if debug:
+                            logger.info(f"Embedded contents: {embedded}")
 
-                        save_doc_text(split_doc, doc_index, output_dir)
+                        # Milvus insert
+                        add_error = store.add_documents([split_doc], embedded[0]["embedding"])
+                        if add_error:
+                            logger.error(f"[MILVUS ERROR] {file_id}: {add_error}")
+                            err_log.write(f"[MILVUS ERROR] {file_id}: {add_error}\n")
+                            continue
+                            
+                        if debug:
+                            save_doc_text(split_doc, doc_index, output_dir)
                         save_metadata_entry(split_doc, doc_index, meta_path)
                         doc_index += 1   
                     if debug:
                         logger.info(f"[SUMMARY] Documents loaded: {counters['documents']}")
                         logger.info(f"[SUMMARY] Chunks created: {counters['chunks']}")
+                        # Optional debug verification
+                    if debug and source_hash:
+                        result = store.query_by_hashcode(source_hash)
+                        logger.info(f"Milvus query returned {len(result)} vectors for hash {source_hash}")                        
    
             except Exception as e:
                 error_message = f"[PROCESSING ERROR] {source.__class__.__name__}: {e}"
