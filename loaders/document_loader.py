@@ -65,7 +65,7 @@ def load_document(file_id: str, content: Optional[bytes]) -> Tuple[Iterator[Docu
 
         def _inject_metadata(docs_iter):
             for doc in docs_iter:
-                doc.metadata["source_hash"] = source_hash
+                doc.metadata["hashcode"] = source_hash
                 yield doc
  
         return _inject_metadata(docs), None, source_hash

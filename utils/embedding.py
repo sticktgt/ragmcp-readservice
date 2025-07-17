@@ -1,18 +1,50 @@
 
-from typing import List, Tuple, Optional, Union
+from typing import Callable, List, Tuple, Optional, Union
 from langchain_core.documents import Document
 from readservice.config import CONFIG
 from readservice.utils.logger import get_logger
 import traceback
-# from langchain.embeddings import OpenAIEmbeddings
+from langchain_core.embeddings import Embeddings
 
 logger = get_logger()
+
+class CustomEmbeddings(Embeddings):
+    def __init__(self, embedding_fn: Callable[[List[str]], List[List[float]]]):
+        self._embedding_fn = embedding_fn
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        return self._embedding_fn(texts)
+
+    def embed_query(self, text: str) -> List[float]:
+        return self._embedding_fn([text])[0]
 
 # Optional: import real YandexGPT embedder if enabled
 try:
     from langchain_community.embeddings.yandex import YandexGPTEmbeddings
 except ImportError:
     YandexGPTEmbeddings = None
+
+def get_embedding_function(cfg: dict) -> Embeddings:
+    provider = cfg.get("provider", "fake")
+    if provider == "yandex":
+        logger.debug("Using YandexGPT embeddings provider.")
+        from langchain_community.embeddings.yandex import YandexGPTEmbeddings
+        return YandexGPTEmbeddings(
+            api_key=CONFIG["yandex"]["api_key"],
+            folder_id=CONFIG["yandex"]["folder_id"],
+            doc_model_name=CONFIG["yandex"].get("doc_model_name", "text-search-doc"),
+            disable_request_logging=CONFIG["yandex"].get("disable_request_logging", False),
+            sleep_interval=CONFIG["yandex"].get("sleep_interval", 2.0),
+            model_version=CONFIG["yandex"].get("model_version", "latest"),
+            grpc_metadata=[],
+        )
+    else:
+        logger.debug("Using Dummy embeddings provider.")
+        def dummy_embed(texts: List[str]) -> List[List[float]]:
+            return [[0.0] * CONFIG["embedding"]["dim"] for _ in texts]
+        return CustomEmbeddings(dummy_embed)
+
+    
 
 def embed_documents(docs: Union[Document, List[Document]]) -> Tuple[List[dict], Optional[str]]:
     if isinstance(docs, Document):
@@ -25,17 +57,21 @@ def embed_documents(docs: Union[Document, List[Document]]) -> Tuple[List[dict], 
         if provider == "yandex":
             if not YandexGPTEmbeddings:
                 raise ImportError("YandexGPTEmbeddings not available. Please install langchain-community")
-
+            logger.debug("Using YandexGPT embeddings provider.")
             api_key = CONFIG["yandex"]["api_key"]
             folder_id = CONFIG["yandex"]["folder_id"]
+            disable_request_logging = CONFIG["yandex"].get("disable_request_logging", False)
+            sleep_interval = CONFIG["yandex"].get("sleep_interval", 2.0)
+            doc_model_name = CONFIG["yandex"].get("doc_model_name", "text-search-doc")
+            model_version = CONFIG["yandex"].get("model_version", "latest")
             embedder = YandexGPTEmbeddings(
                 api_key=api_key,
                 folder_id=folder_id,
                 grpc_metadata=[],
-                disable_request_logging=False,
-                sleep_interval=2.0,
-                doc_model_name="text-search-doc",   # Embedding for your document chunks
-                model_version="latest",
+                disable_request_logging=disable_request_logging,
+                sleep_interval=sleep_interval,
+                doc_model_name=doc_model_name,   # Embedding for document chunks
+                model_version=model_version,
             )
             vectors = embedder.embed_documents([doc.page_content for doc in docs])
         else:
@@ -49,13 +85,6 @@ def embed_documents(docs: Union[Document, List[Document]]) -> Tuple[List[dict], 
                 "embedding": vector,
                 "metadata": doc.metadata
             })
-
-        # embedder = OpenAIEmbeddings(
-        #     openai_api_base=CONFIG["embedding"]["endpoint"],
-        #     openai_api_key=CONFIG["embedding"]["api_key"],
-        #     model=CONFIG["embedding"]["model"]
-        # )
-        # vectors = embedder.embed_documents([doc.page_content for doc in docs])
 
         return embedded, None
 

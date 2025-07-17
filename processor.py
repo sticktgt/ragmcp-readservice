@@ -1,120 +1,132 @@
 import os
 from pathlib import Path
+from typing import Optional
 from .output.saver import save_doc_text, save_metadata_entry
 from .loaders.document_loader import load_document
 from .sources.local import LocalFileSource
 from .sources.s3 import S3FileSource
 from .config import CONFIG
 from .utils.splitters import split_documents_lazy
-from .utils.embedding import embed_documents
 from .utils.logger import get_logger
 import traceback
+from .utils.embedding import get_embedding_function
+from pymilvus import connections
+
 from .utils.milvus_store import MilvusStore
 
 from itertools import tee
+from .utils.search_milvus import search_main
 
 logger = get_logger()
 
 def is_already_uploaded(hashcode: str, store: MilvusStore) -> bool:
     return store.document_exists(hashcode)
 
+def handle_file(file_id: str, content: Optional[bytes], meta: dict,
+                store: MilvusStore, doc_index: int,
+                err_log, output_dir: str, meta_path: str) -> int:
+    """Handle a single file: load, split, embed, and store."""
+    file_parts = 0
+    try:
+        logger.info(f"Processing: {file_id}")
+        docs, load_error, source_hash = load_document(file_id, content)
+        if load_error:
+            logger.error(f"[LOAD ERROR] {file_id}: {load_error}")
+            err_log.write(f"[LOAD ERROR] {file_id}: {load_error}\n")
+            return 0
+
+        if CONFIG.get("debug", True):
+            docs = list(docs)  # Materialize the iterator once
+            file_parts = len(docs)
+
+        if source_hash and is_already_uploaded(source_hash, store):
+            logger.info(f"[SKIP] {file_id} (hash exists)")
+            if CONFIG.get("delete_old_vectors", False):
+              store.delete_by_hash(source_hash)
+            return 0
+
+        ext = Path(file_id).suffix.lower()
+        split_docs, split_error = split_documents_lazy(docs, file_ext=ext, config=CONFIG["splitters"])
+        if split_error:
+            logger.error(f"[SPLIT ERROR] {file_id}: {split_error}")
+            err_log.write(f"[SPLIT ERROR] {file_id}: {split_error}\n")
+            return 0
+
+        chunk_docs = []
+        for split_doc in split_docs:
+            split_doc.metadata.update(meta)
+            chunk_docs.append(split_doc)
+
+        store_error = store.add_documents(chunk_docs)
+        if store_error:
+            logger.error(f"[STORE ERROR] {file_id}: {store_error}")
+            err_log.write(f"[STORE ERROR] {file_id}: {store_error}\n")
+            if source_hash:
+                store.delete_by_hash(source_hash)
+            return -1
+
+        if CONFIG.get("debug", True):
+            if source_hash:
+                store.retrieve_vectors_by_hashcode(source_hash)
+
+        for doc in chunk_docs:
+            if CONFIG.get("debug", True):
+                save_doc_text(doc, doc_index, output_dir)
+            save_metadata_entry(doc, doc_index, meta_path)
+            doc_index += 1
+
+        if CONFIG.get("debug", True):
+            logger.info(f"Processed {file_id}: {file_parts} parts, {len(chunk_docs)} chunks")
+        return len(chunk_docs)
+
+    except Exception as e:
+        logger.error(f"[CRITICAL ERROR] {file_id}: {e}")
+        err_log.write(f"[CRITICAL ERROR] {file_id}: {e}\n")
+        logger.debug(traceback.format_exc())
+        return -1
+
 def process_streaming():
-    output_dir = CONFIG["output_dir"]
-    meta_path = os.path.join(output_dir, "metadata.jsonl")
-    error_path = os.path.join(output_dir, "errors.log")
-    os.makedirs(output_dir, exist_ok=True)
-
     doc_index = 0
+    docs_count = 0
+    store = None
+    try:
+        output_dir = CONFIG["output_dir"]
+        os.makedirs(output_dir, exist_ok=True)
+        meta_path = os.path.join(output_dir, "metadata.jsonl")
+        error_path = os.path.join(output_dir, "errors.log")
 
-    sources = []
-    if CONFIG.get("use_local"):
-        sources.append(LocalFileSource(CONFIG["local_path"], CONFIG["file_types"]))
-    if CONFIG.get("use_s3"):
-        sources.append(S3FileSource(CONFIG, CONFIG["file_types"]))
+        embedding_function = get_embedding_function(CONFIG["embedding"])
+        store = MilvusStore(CONFIG["milvus"], embedding_function=embedding_function)
 
-    # Optional debug counters
-    counters = {
-        "files": 0,
-        "documents": 0,
-        "chunks": 0,
-    }
-    debug = CONFIG.get("debug_counters", False)
-    store = MilvusStore(CONFIG["milvus"])
+        sources = []
+        if CONFIG.get("use_local"):
+            sources.append(LocalFileSource(CONFIG["local_path"], CONFIG["file_types"]))
+        if CONFIG.get("use_s3"):
+            sources.append(S3FileSource(CONFIG, CONFIG["file_types"]))
 
-    with open(error_path, "w", encoding="utf-8") as err_log:
-        for source in sources:
-            try:
+        with open(error_path, "w", encoding="utf-8") as err_log:
+            for source in sources:
                 logger.info(f"Processing source: {source.__class__.__name__}")
                 for file_id, content, meta, source_error in source.iterate_files():
-                    if debug:
-                        counters["documents"] = 0
-                        counters["chunks"] = 0
-                        counters["files"] += 1                    
-                    logger.info(f"Processing: {file_id}")
-
                     if source_error:
                         logger.error(f"[SOURCE ERROR] {file_id}: {source_error}")
                         err_log.write(f"[SOURCE ERROR] {file_id}: {source_error}\n")
                         continue
 
-                    docs, load_error, source_hash = load_document(file_id, content)
-                    if load_error:
-                        logger.error(f"[LOAD ERROR] {file_id}: {load_error}")
-                        err_log.write(f"[LOAD ERROR] {file_id}: {load_error}\n")
-                        continue
+                    result = handle_file(file_id, content, meta, store, doc_index, err_log, output_dir, meta_path)
+                    if result < 0:
+                        logger.critical(f"[FATAL] Aborting due to error in file: {file_id}")
+                        return
+                    elif result > 0:
+                        doc_index += result
+                        docs_count += 1
 
-                    if debug:
-                        docs, docs_copy = tee(docs)
-                        counters["documents"] += sum(1 for _ in docs_copy)
+            err_log.flush()
 
-                    if source_hash and is_already_uploaded(source_hash, store):
-                        logger.info(f"Skipping {file_id}, Hashcode {source_hash}: already exists in Milvus.")
-                        continue
-
-                    ext = Path(file_id).suffix.lower()
-
-                    split_docs, split_error = split_documents_lazy(docs, file_ext=ext, config=CONFIG["splitters"])
-                    if split_error:
-                        logger.error(f"[SPLIT ERROR] {file_id}: {split_error}")
-                        err_log.write(f"[SPLIT ERROR] {file_id}: {split_error}\n")
-                        continue
-
-                    for split_doc in split_docs:
-                        split_doc.metadata.update(meta)                
-
-                        if debug:
-                            counters["chunks"] += 1
-
-                        embedded, embed_error = embed_documents(split_doc)
-                        if embed_error:
-                            logger.error(f"[EMBED ERROR] {file_id}: {embed_error}")
-                            err_log.write(f"[EMBED ERROR] {file_id}: {embed_error}\n")
-                            continue
-                        if debug:
-                            logger.info(f"Embedded contents: {embedded}")
-
-                        # Milvus insert
-                        add_error = store.add_documents([split_doc], embedded[0]["embedding"])
-                        if add_error:
-                            logger.error(f"[MILVUS ERROR] {file_id}: {add_error}")
-                            err_log.write(f"[MILVUS ERROR] {file_id}: {add_error}\n")
-                            continue
-                            
-                        if debug:
-                            save_doc_text(split_doc, doc_index, output_dir)
-                        save_metadata_entry(split_doc, doc_index, meta_path)
-                        doc_index += 1   
-                    if debug:
-                        logger.info(f"[SUMMARY] Documents loaded: {counters['documents']}")
-                        logger.info(f"[SUMMARY] Chunks created: {counters['chunks']}")
-                        # Optional debug verification
-                    if debug and source_hash:
-                        result = store.query_by_hashcode(source_hash)
-                        logger.info(f"Milvus query returned {len(result)} vectors for hash {source_hash}")                        
-   
-            except Exception as e:
-                error_message = f"[PROCESSING ERROR] {source.__class__.__name__}: {e}"
-                traceback_str = traceback.format_exc()
-                logger.debug(traceback_str)                      
-                logger.error(e)
-                err_log.write(error_message + "\n")
+        #  Run test query against Milvus and log results
+        if CONFIG.get("debug", True):
+          search_main()
+          logger.info("Processed documents count: %d", docs_count)
+    finally:
+        connections.disconnect(alias=CONFIG["milvus"]["alias"])
+        # logger.info("Disconnected from Milvus.")

@@ -1,56 +1,37 @@
-import traceback
-from typing import List, Optional
-
-from langchain_community.vectorstores import Milvus
+from langchain_milvus import Milvus
 from langchain_core.documents import Document
-from pymilvus import connections
-from langchain_core.embeddings import Embeddings
-import uuid
-from readservice.utils.logger import get_logger
+from langchain_core.embeddings import Embeddings  # base class type
+from typing import List, Optional
+from pymilvus import connections, CollectionSchema, FieldSchema, DataType, Collection, utility
+from ..utils.logger import get_logger
+import traceback
 
 logger = get_logger()
 
 
-class DummyEmbeddings(Embeddings):
-    def __init__(self, dim: int):
-        self.dim = dim
-
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        return [[0.0] * self.dim for _ in texts]
-
-    def embed_query(self, text: str) -> List[float]:
-        return [0.0] * self.dim
-
-
 class MilvusStore:
-    def __init__(self, cfg: dict):
-        self.cfg = cfg
-        try:
-            connections.connect(alias="default", host=cfg["host"], port=cfg["port"])
-            logger.info(f"Connected to Milvus at {cfg['host']}:{cfg['port']}")
 
+    def __init__(self, cfg: dict, embedding_function: Embeddings):
+        try:
+            self.cfg = cfg
+            connections.connect(alias=cfg["alias"], host=cfg["host"], port=cfg["port"])
+            logger.info(f"Connected to Milvus at {cfg['host']}:{cfg['port']}")
+            # self.ensure_milvus_collection()  # <-- Ensures schema exists before using it
             self.vstore = Milvus(
-                embedding_function=DummyEmbeddings(cfg["dim"]),
                 collection_name=cfg["collection"],
-                connection_args={"host": cfg["host"], "port": cfg["port"]}
+                connection_args={"host": cfg["host"], "port": cfg["port"]},
+                embedding_function=embedding_function,
+                drop_old=cfg["drop_old"],
+                auto_id=cfg["auto_id"],
             )
         except Exception as e:
             logger.error(f"[MILVUS INIT ERROR]: {e}")
             logger.debug(traceback.format_exc())
             raise
 
-    def add_documents(self, docs: List[Document], embeddings: List[List[float]]) -> Optional[str]:
+    def add_documents(self, docs: List[Document]) -> Optional[str]:
         try:
-            texts = [doc.page_content for doc in docs]
-            metadatas = [doc.metadata for doc in docs]
-            # Generate unique ids from source hash or fallback
-            ids = [str(uuid.uuid4()) for doc in docs]
-            self.vstore.add_texts(
-                texts=texts,
-                metadatas=metadatas,
-                embeddings=embeddings,
-                ids=ids
-            )
+            self.vstore.add_documents(documents=docs)
             return None
         except Exception as e:
             logger.error(f"[MILVUS ADD ERROR]: {e}")
@@ -80,21 +61,61 @@ class MilvusStore:
             logger.error(f"[MILVUS QUERY ERROR]: {e}")
             logger.debug(traceback.format_exc())
             return []
+        
 
     def delete_by_hash(self, hashcode: str) -> Optional[str]:
         try:
-            self.vstore.delete(delete_filter=f"hashcode == '{hashcode}'")
+            logger.info(f"Deleting documents from collection {self.cfg['collection']} with hashcode: {hashcode}")
+
+            if not utility.has_collection(self.cfg["collection"]):
+                logger.error(f"Collection {self.cfg['collection']} does not exist.")
+                return f"Collection {self.cfg['collection']} does not exist."
+
+            collection = Collection(self.cfg["collection"])
+            collection.load()
+            delete_result = collection.delete(expr=f"hashcode == '{hashcode}'")
+
+            logger.info(f"Delete result: {delete_result}")
             return None
         except Exception as e:
             logger.error(f"[MILVUS DELETE ERROR]: {e}")
             logger.debug(traceback.format_exc())
             return str(e)
 
+
     def delete_by_source(self, source: str) -> Optional[str]:
         try:
-            self.vstore.delete(delete_filter=f"source == '{source}'")
+            logger.info(f"Deleting documents from collection {self.cfg['collection']} with source: {source}")
+
+            if not utility.has_collection(self.cfg["collection"]):
+                return f"Collection {self.cfg['collection']} does not exist."
+
+            collection = Collection(self.cfg["collection"])
+            collection.load()
+            delete_result = collection.delete(expr=f"source == '{source}'")
+
+            logger.info(f"Delete result: {delete_result}")
             return None
         except Exception as e:
             logger.error(f"[MILVUS DELETE ERROR]: {e}")
             logger.debug(traceback.format_exc())
             return str(e)
+
+    def retrieve_vectors_by_hashcode(self, hashcode: str):
+        connections.connect(alias=self.cfg["alias"], host=self.cfg["host"], port=self.cfg["port"])
+        collection = Collection(self.cfg["collection"])
+        collection.load()
+
+
+        # for field in collection.schema.fields:
+        #     logger.info(f"Field: {field.name}, Type: {field.dtype}, Is Primary: {field.is_primary}")
+
+        expr = f"hashcode == '{hashcode}'"
+        output_fields = ["vector"]
+        results = collection.query(expr=expr, output_fields=output_fields)
+
+        vectors = [r["vector"] for r in results if "vector" in r]
+        logger.info(f"Retrieved {len(vectors)} vectors for hashcode: {hashcode}")
+        # for i, vec in enumerate(vectors):
+        #    logger.info(f"Vector {i}: {vec[:5]}...")  # Print first 5 dims for debug
+    

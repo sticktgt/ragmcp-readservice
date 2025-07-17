@@ -40,17 +40,25 @@ CONFIG = {
     },
     "embedding": {
         "provider": "yandex",  # yandex or "fake"
+        "dim": 256,  # dimension of the embeddings
     },
     "yandex": {
         "api_key": "###", # os.getenv("YANDEX_API_KEY", "")
         "folder_id": "b1g2758uu6otr3b7s64e", # os.getenv("YANDEX_FOLDER_ID", "")
+        "doc_model_name": "text-search-doc",
+        "model_version": "latest",  # or specify a version like "2023-10-01"
+        "sleep_interval": 2.0,
+        "disable_request_logging": False,
     },
     "milvus": {
         "host": "localhost",
         "port": 19530,
         "collection": "doc_vectors",
-        "dim": 768,  # Yandex embedding dimension (mock or real)
-        "overwrite": False
+        "drop_old": False,
+        "auto_id": True,
+        "alias": "default",
+        "search_query": "надо будет делать в двух вариантах",
+        "search_top_k": 5,
     },
     "s3_bucket": "files",
     "s3_prefix": "",
@@ -60,5 +68,6 @@ CONFIG = {
     "use_ssl": False,
     "local_path": "/home/stickt/python/local_docs",
     "output_dir": "./output_docs",
-    "debug_counters": True
+    "debug": True,
+    "delete_old_vectors": False,  # whether to delete old vectors by hashcode
 }

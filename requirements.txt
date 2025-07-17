@@ -8,7 +8,8 @@ chardet
 pydantic
 typing-extensions
 tiktoken>=0.9.0
-grpcio
+grpcio>=1.70.0
 grpcio-tools
 pymilvus
 yandexcloud
+langchain_milvus
