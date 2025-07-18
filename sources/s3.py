@@ -10,18 +10,18 @@ logger = get_logger()
 
 class S3FileSource:
     def __init__(self, config: dict, file_types: dict):
-        self.bucket = config["s3_bucket"]
-        self.prefix = config["s3_prefix"]
+        self.bucket = config["s3"]["s3_bucket"]
+        self.prefix = config["s3"]["s3_prefix"]
         self.file_types = file_types
-        self.endpoint_url = config["endpoint_url"]
+        self.endpoint_url = config["s3"]["endpoint_url"]
         session = boto3.Session()
         self.s3 = session.client(
             "s3",
-            endpoint_url=config["endpoint_url"],
-            aws_access_key_id=config["aws_access_key_id"],
-            aws_secret_access_key=config["aws_secret_access_key"],
-            use_ssl=config["use_ssl"],
-            config=BotoConfig(signature_version="s3v4"),
+            endpoint_url=self.endpoint_url,
+            aws_access_key_id=config["s3"]["aws_access_key_id"],
+            aws_secret_access_key=config["s3"]["aws_secret_access_key"],
+            use_ssl=config["s3"]["use_ssl"],
+            config=BotoConfig(signature_version=config["s3"]["signature_version"]),
         )
 
     def iterate_files(self) -> Iterator[Tuple[str, Optional[bytes], dict, Optional[str]]]:

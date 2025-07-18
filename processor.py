@@ -68,6 +68,7 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
         if CONFIG.get("debug", True):
             if source_hash:
                 store.retrieve_vectors_by_hashcode(source_hash)
+                # store.print_by_hashcode(source_hash)
 
         for doc in chunk_docs:
             if CONFIG.get("debug", True):

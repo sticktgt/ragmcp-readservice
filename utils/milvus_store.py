@@ -40,7 +40,11 @@ class MilvusStore:
 
     def document_exists(self, hashcode: str) -> bool:
         try:
-            results = self.vstore.similarity_search_with_score(query=hashcode, k=1)
+            results = self.vstore.search_by_metadata(
+                expr=f"hashcode == '{hashcode}'",
+                limit=1
+            )
+            # logger.debug(f"Checked existence for hashcode {hashcode}: {len(results)} results found.")
             return bool(results)
         except Exception as e:
             logger.warning(f"[MILVUS CHECK ERROR]: {e}")
@@ -48,7 +52,10 @@ class MilvusStore:
 
     def query_by_source(self, source: str):
         try:
-            return self.vstore.similarity_search(query=source, k=5)
+            return self.vstore.search_by_metadata(
+                expr=f"source == '{source}'",
+                limit=10
+            )            
         except Exception as e:
             logger.error(f"[MILVUS QUERY ERROR]: {e}")
             logger.debug(traceback.format_exc())
@@ -56,13 +63,15 @@ class MilvusStore:
 
     def query_by_hashcode(self, hashcode: str):
         try:
-            return self.vstore.similarity_search(query=hashcode, k=5)
+            return self.vstore.search_by_metadata(
+                expr=f"hashcode == '{hashcode}'",
+                limit=10
+            )
         except Exception as e:
             logger.error(f"[MILVUS QUERY ERROR]: {e}")
             logger.debug(traceback.format_exc())
             return []
         
-
     def delete_by_hash(self, hashcode: str) -> Optional[str]:
         try:
             logger.info(f"Deleting documents from collection {self.cfg['collection']} with hashcode: {hashcode}")
@@ -106,9 +115,8 @@ class MilvusStore:
         collection = Collection(self.cfg["collection"])
         collection.load()
 
-
-        # for field in collection.schema.fields:
-        #     logger.info(f"Field: {field.name}, Type: {field.dtype}, Is Primary: {field.is_primary}")
+        for field in collection.schema.fields:
+            logger.info(f"Field: {field.name}, Type: {field.dtype}, Is Primary: {field.is_primary}")
 
         expr = f"hashcode == '{hashcode}'"
         output_fields = ["vector"]
@@ -119,3 +127,19 @@ class MilvusStore:
         # for i, vec in enumerate(vectors):
         #    logger.info(f"Vector {i}: {vec[:5]}...")  # Print first 5 dims for debug
     
+    def print_by_hashcode(self, hashcode: str):
+        try:
+            result = self.vstore.search_by_metadata(
+                expr=f"hashcode == '{hashcode}'",
+                limit=100
+            )
+            if result:
+                logger.info(f"Found {len(result)} documents with hashcode: {hashcode}")
+                logger.info(f"{result}")
+            else:
+                logger.info(f"No documents found with hashcode: {hashcode}")
+        except Exception as e:
+            logger.error(f"[MILVUS QUERY ERROR]: {e}")
+            logger.debug(traceback.format_exc())
+            return []
+

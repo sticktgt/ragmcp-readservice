@@ -1,6 +1,6 @@
 CONFIG = {
     "use_local": True,
-    "use_s3": False,
+    "use_s3": True,
 
     "file_types": {
         ".txt": "TextLoader",
@@ -39,7 +39,7 @@ CONFIG = {
         }
     },
     "embedding": {
-        "provider": "yandex",  # yandex or "fake"
+        "provider": "fake",  # yandex or "fake"
         "dim": 256,  # dimension of the embeddings
     },
     "yandex": {
@@ -60,12 +60,15 @@ CONFIG = {
         "search_query": "надо будет делать в двух вариантах",
         "search_top_k": 5,
     },
-    "s3_bucket": "files",
-    "s3_prefix": "",
-    "endpoint_url": "http://localhost:9001",
-    "aws_access_key_id": "minioadmin", # os.getenv("S3_ACCESS_KEY", "minioadmin"),
-    "aws_secret_access_key": "minioadmin", # os.getenv("S3_SECRET_KEY", "minioadmin"),
-    "use_ssl": False,
+    "s3": {
+        "s3_bucket": "files",
+        "s3_prefix": "",
+        "endpoint_url": "http://localhost:9000",
+        "aws_access_key_id": "minioadmin",  # os.getenv("S3_ACCESS_KEY", "minioadmin"),
+        "aws_secret_access_key": "minioadmin",  # os.getenv("S3_SECRET_KEY", "minioadmin"),
+        "use_ssl": False,
+        "signature_version": "s3v4",
+    },
     "local_path": "/home/stickt/python/local_docs",
     "output_dir": "./output_docs",
     "debug": True,
