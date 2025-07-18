@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Tuple
 from .output.saver import save_doc_text, save_metadata_entry
 from .loaders.document_loader import load_document
 from .sources.local import LocalFileSource
@@ -11,7 +11,7 @@ from .utils.logger import get_logger
 import traceback
 from .utils.embedding import get_embedding_function
 from pymilvus import connections
-
+from langchain_core.documents import Document
 from .utils.milvus_store import MilvusStore
 
 from itertools import tee
@@ -19,8 +19,9 @@ from .utils.search_milvus import search_main
 
 logger = get_logger()
 
-def is_already_uploaded(hashcode: str, store: MilvusStore) -> bool:
+def is_already_uploaded(hashcode: str, store: MilvusStore) -> Tuple[bool, Optional[str]]:
     return store.document_exists(hashcode)
+
 
 def handle_file(file_id: str, content: Optional[bytes], meta: dict,
                 store: MilvusStore, doc_index: int,
@@ -36,14 +37,34 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
             return 0
 
         if CONFIG.get("debug", True):
-            docs = list(docs)  # Materialize the iterator once
+            docs = list(docs)  # Materialize the iterator once for debugging
             file_parts = len(docs)
 
-        if source_hash and is_already_uploaded(source_hash, store):
-            logger.info(f"[SKIP] {file_id} (hash exists)")
-            if CONFIG.get("delete_old_vectors", False):
-              store.delete_by_hash(source_hash)
-            return 0
+        if source_hash:
+            # Check if the document already exists in Milvus by hashcode
+            is_exists, exists_error = is_already_uploaded(source_hash, store)
+            if exists_error:
+                logger.error(f"[CHECK ERROR] {file_id}: {exists_error}")
+                err_log.write(f"[CHECK ERROR] {file_id}: {exists_error}\n")
+                return 0            
+            if is_exists:
+                # if the document already exists in Milvus by hashcode
+                logger.info(f"[SKIP] {file_id} (hash exists)")
+                if CONFIG.get("delete_old_vectors", False): # for a test purpose only!!
+                    store.delete_by_hash(source_hash) # for a test purpose only!!
+                return 0
+            source = meta.get("source")
+            if source:
+                # Search for existing documents by the same source
+                edocs, edocs_error = store.get_distinct_filenames_by_source(source)
+                if edocs_error:
+                    logger.error(f"[SEARCH ERROR] {file_id}: {edocs_error}")
+                    err_log.write(f"[SEARCH ERROR] {file_id}: {edocs_error}\n")
+                    return 0
+                logger.info(f"[SEARCH] found {len(edocs)} existing documents with source: {source}")
+                if CONFIG.get("debug", False):
+                    if len(edocs) > 0:
+                        logger.debug(f"[SEARCH] {edocs}")
 
         ext = Path(file_id).suffix.lower()
         split_docs, split_error = split_documents_lazy(docs, file_ext=ext, config=CONFIG["splitters"])
@@ -126,8 +147,10 @@ def process_streaming():
 
         #  Run test query against Milvus and log results
         if CONFIG.get("debug", True):
-          search_main()
-          logger.info("Processed documents count: %d", docs_count)
+            logger.info("Processed documents count: %d", docs_count)
+            if docs_count > 0:
+                search_main()
+
     finally:
         connections.disconnect(alias=CONFIG["milvus"]["alias"])
         # logger.info("Disconnected from Milvus.")

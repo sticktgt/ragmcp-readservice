@@ -16,9 +16,10 @@ class LocalFileSource:
         for file_path in self.root.rglob("*"):
             if file_path.suffix.lower() in self.file_types:
                 try:
+                    relative_path = file_path.relative_to(self.root)
                     metadata = {
-                        "original_name": file_path.name,
-                        "source": str(file_path),
+                        "original_name": file_path.name.lower(),
+                        "source": str(relative_path.parent).lower(),  # <-- directory part only
                         "size_bytes": os.path.getsize(file_path),
                         "created_at": datetime.fromtimestamp(os.path.getctime(file_path)).isoformat(),
                         "source_connector": "local",

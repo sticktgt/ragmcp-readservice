@@ -39,7 +39,7 @@ CONFIG = {
         }
     },
     "embedding": {
-        "provider": "fake",  # yandex or "fake"
+        "provider": "yandex",  # yandex or "fake"
         "dim": 256,  # dimension of the embeddings
     },
     "yandex": {

@@ -36,9 +36,10 @@ class S3FileSource:
                     try:
                         response = self.s3.get_object(Bucket=self.bucket, Key=key)
                         data = response["Body"].read()
+                        relative_path = key[len(self.prefix):].lstrip("/")  # remove prefix and leading slash
                         metadata = {
-                            "original_name": Path(key).name,
-                            "source": key,
+                            "original_name": Path(key).name.lower(),
+                            "source": str(Path(relative_path).parent).lower(),  # directory only,
                             "size_bytes": obj.get("Size"),
                             # size": len(data),
                             "created_at": obj.get("LastModified").isoformat() if obj.get("LastModified") else None,

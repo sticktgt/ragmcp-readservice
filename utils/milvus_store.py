@@ -1,7 +1,7 @@
 from langchain_milvus import Milvus
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings  # base class type
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from pymilvus import connections, CollectionSchema, FieldSchema, DataType, Collection, utility
 from ..utils.logger import get_logger
 import traceback
@@ -16,7 +16,6 @@ class MilvusStore:
             self.cfg = cfg
             connections.connect(alias=cfg["alias"], host=cfg["host"], port=cfg["port"])
             logger.info(f"Connected to Milvus at {cfg['host']}:{cfg['port']}")
-            # self.ensure_milvus_collection()  # <-- Ensures schema exists before using it
             self.vstore = Milvus(
                 collection_name=cfg["collection"],
                 connection_args={"host": cfg["host"], "port": cfg["port"]},
@@ -38,28 +37,52 @@ class MilvusStore:
             logger.debug(traceback.format_exc())
             return str(e)
 
-    def document_exists(self, hashcode: str) -> bool:
+    def document_exists(self, hashcode: str) -> Tuple[bool, Optional[str]]:
         try:
             results = self.vstore.search_by_metadata(
                 expr=f"hashcode == '{hashcode}'",
                 limit=1
             )
-            # logger.debug(f"Checked existence for hashcode {hashcode}: {len(results)} results found.")
-            return bool(results)
+            return bool(results), None
         except Exception as e:
-            logger.warning(f"[MILVUS CHECK ERROR]: {e}")
-            return False
+            error_message = f"[MILVUS CHECK ERROR]: {e}"
+            logger.warning(error_message)
+            logger.debug(traceback.format_exc())
+            return False, error_message
 
-    def query_by_source(self, source: str):
+    def query_by_source(self, source: str) -> Tuple[List[Document], Optional[str]]:
         try:
             return self.vstore.search_by_metadata(
+                # expr = f"source == '{source}' and original_name == '{filename}'"
                 expr=f"source == '{source}'",
-                limit=10
-            )            
+                fields=["source", "original_name", "text"], # should include "text"!!!
+                limit=10000
+            ), None
         except Exception as e:
-            logger.error(f"[MILVUS QUERY ERROR]: {e}")
+            error_message = f"[MILVUS QUERY ERROR]: {e}"
+            logger.error(error_message)
             logger.debug(traceback.format_exc())
-            return []
+            return [], error_message
+
+    def get_distinct_filenames_by_source(self, source: str) -> Tuple[List[str], Optional[str]]:
+        try:
+            results = self.vstore.search_by_metadata(
+                expr=f"source == '{source}'",
+                fields=["original_name", "text"], # should include "text"!!!
+                limit=10000
+            )
+            # Extract distinct original_names
+            unique_names = list({
+                name for doc in results 
+                    if (name := doc.metadata.get("original_name")) is not None
+            })
+            return unique_names, None
+        except Exception as e:
+            error_message = f"[MILVUS DISTINCT QUERY ERROR]: {e}"
+            logger.error(error_message)
+            logger.debug(traceback.format_exc())
+            return [], error_message
+
 
     def query_by_hashcode(self, hashcode: str):
         try:
@@ -110,13 +133,14 @@ class MilvusStore:
             logger.debug(traceback.format_exc())
             return str(e)
 
+    # Just for debugging purposes
     def retrieve_vectors_by_hashcode(self, hashcode: str):
         connections.connect(alias=self.cfg["alias"], host=self.cfg["host"], port=self.cfg["port"])
         collection = Collection(self.cfg["collection"])
         collection.load()
-
-        for field in collection.schema.fields:
-            logger.info(f"Field: {field.name}, Type: {field.dtype}, Is Primary: {field.is_primary}")
+        # to see the collection schema
+        # for field in collection.schema.fields:
+        #     logger.info(f"Field: {field.name}, Type: {field.dtype}, Is Primary: {field.is_primary}")
 
         expr = f"hashcode == '{hashcode}'"
         output_fields = ["vector"]
@@ -124,9 +148,11 @@ class MilvusStore:
 
         vectors = [r["vector"] for r in results if "vector" in r]
         logger.info(f"Retrieved {len(vectors)} vectors for hashcode: {hashcode}")
+        # to see the first few vectors
         # for i, vec in enumerate(vectors):
-        #    logger.info(f"Vector {i}: {vec[:5]}...")  # Print first 5 dims for debug
+        #     logger.info(f"Vector {i}: {vec[:5]}...")  # Print first 5 dims for debug
     
+    # Just for debugging purposes
     def print_by_hashcode(self, hashcode: str):
         try:
             result = self.vstore.search_by_metadata(
