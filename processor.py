@@ -8,23 +8,20 @@ from .sources.s3 import S3FileSource
 from .config import CONFIG
 from .utils.splitters import split_documents_lazy
 from .utils.logger import get_logger
-import traceback
 from .utils.embedding import get_embedding_function
-from pymilvus import connections
-from langchain_core.documents import Document
-from .utils.milvus_store import MilvusStore
-
-from itertools import tee
-from .utils.search_milvus import search_main
+from .storage.base import VectorStoreBase
+from .storage.factory import get_vector_store
+from .storage.search import search_main
+import traceback
 
 logger = get_logger()
 
-def is_already_uploaded(hashcode: str, store: MilvusStore) -> Tuple[bool, Optional[str]]:
+def is_already_uploaded(hashcode: str, store: VectorStoreBase) -> Tuple[bool, Optional[str]]:
     return store.document_exists(hashcode)
 
 
 def handle_file(file_id: str, content: Optional[bytes], meta: dict,
-                store: MilvusStore, doc_index: int,
+                store: VectorStoreBase, doc_index: int,
                 err_log, output_dir: str, meta_path: str) -> int:
     """Handle a single file: load, split, embed, and store."""
     file_parts = 0
@@ -54,17 +51,22 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
                     store.delete_by_hash(source_hash) # for a test purpose only!!
                 return 0
             source = meta.get("source")
-            if source:
+            original_name = meta.get("original_name", "").lower()
+            if source and original_name:
                 # Search for existing documents by the same source
-                edocs, edocs_error = store.get_distinct_filenames_by_source(source)
+                edocs, edocs_error = store.get_filenames_and_hashcodes_by_source(source)
                 if edocs_error:
                     logger.error(f"[SEARCH ERROR] {file_id}: {edocs_error}")
                     err_log.write(f"[SEARCH ERROR] {file_id}: {edocs_error}\n")
                     return 0
-                logger.info(f"[SEARCH] found {len(edocs)} existing documents with source: {source}")
+                logger.debug(f"[SEARCH] found {len(edocs)} existing documents with source: {source}")
                 if CONFIG.get("debug", False):
                     if len(edocs) > 0:
                         logger.debug(f"[SEARCH] {edocs}")
+                for existing_name, existing_hash in edocs:
+                    if existing_name.lower() == original_name:
+                        logger.info(f"[DUPLICATE] Found matching file in Milvus: {existing_name} (hash: {existing_hash})")
+                        store.delete_by_hash(existing_hash)
 
         ext = Path(file_id).suffix.lower()
         split_docs, split_error = split_documents_lazy(docs, file_ext=ext, config=CONFIG["splitters"])
@@ -86,10 +88,11 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
                 store.delete_by_hash(source_hash)
             return -1
 
-        if CONFIG.get("debug", True):
-            if source_hash:
-                store.retrieve_vectors_by_hashcode(source_hash)
-                # store.print_by_hashcode(source_hash)
+        # TODO: implement debug mode for the PGVectorStore
+        # if CONFIG.get("debug", True):
+        #    if source_hash:
+        #        store.retrieve_vectors_by_hashcode(source_hash)
+        #        # store.print_by_hashcode(source_hash)
 
         for doc in chunk_docs:
             if CONFIG.get("debug", True):
@@ -118,7 +121,8 @@ def process_streaming():
         error_path = os.path.join(output_dir, "errors.log")
 
         embedding_function = get_embedding_function(CONFIG["embedding"])
-        store = MilvusStore(CONFIG["milvus"], embedding_function=embedding_function)
+        #store = MilvusStore(CONFIG["milvus"], embedding_function=embedding_function)
+        store = get_vector_store(CONFIG["storage"], embedding_function)
 
         sources = []
         if CONFIG.get("use_local"):
@@ -149,8 +153,7 @@ def process_streaming():
         if CONFIG.get("debug", True):
             logger.info("Processed documents count: %d", docs_count)
             if docs_count > 0:
-                search_main()
+                search_main(store, CONFIG)
 
     finally:
-        connections.disconnect(alias=CONFIG["milvus"]["alias"])
-        # logger.info("Disconnected from Milvus.")
+        logger.debug("")

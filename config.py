@@ -1,6 +1,6 @@
 CONFIG = {
     "use_local": True,
-    "use_s3": True,
+    "use_s3": False,
 
     "file_types": {
         ".txt": "TextLoader",
@@ -50,16 +50,6 @@ CONFIG = {
         "sleep_interval": 2.0,
         "disable_request_logging": False,
     },
-    "milvus": {
-        "host": "localhost",
-        "port": 19530,
-        "collection": "doc_vectors",
-        "drop_old": False,
-        "auto_id": True,
-        "alias": "default",
-        "search_query": "надо будет делать в двух вариантах",
-        "search_top_k": 5,
-    },
     "s3": {
         "s3_bucket": "files",
         "s3_prefix": "",
@@ -68,6 +58,30 @@ CONFIG = {
         "aws_secret_access_key": "minioadmin",  # os.getenv("S3_SECRET_KEY", "minioadmin"),
         "use_ssl": False,
         "signature_version": "s3v4",
+    },
+    "storage": {
+        "store_type": "pgvector",  # "milvus" or "pgvector"
+        "milvus": {
+            "host": "localhost",
+            "port": 19530,
+            "collection": "doc_vectors",
+            "drop_old": False,
+            "auto_id": True,
+            "alias": "default",
+        },
+        "pgvector": {
+            "host": "localhost",
+            "port": 5432,
+            "user": "postgres",
+            "password": "postgres",
+            "database": "vector_db",
+            "collection": "doc_vectors",
+            "use_jsonb": True,  # use JSONB for metadata
+        }
+    },
+    "search": {
+        "search_query": "the work of a data analyst",
+        "search_top_k": 5,
     },
     "local_path": "/home/stickt/python/local_docs",
     "output_dir": "./output_docs",
