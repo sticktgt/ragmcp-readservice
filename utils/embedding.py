@@ -30,12 +30,12 @@ def get_embedding_function(cfg: dict) -> Embeddings:
         logger.debug("Using YandexGPT embeddings provider.")
         from langchain_community.embeddings.yandex import YandexGPTEmbeddings
         return YandexGPTEmbeddings(
-            api_key=CONFIG["yandex"]["api_key"],
-            folder_id=CONFIG["yandex"]["folder_id"],
-            doc_model_name=CONFIG["yandex"].get("doc_model_name", "text-search-doc"),
-            disable_request_logging=CONFIG["yandex"].get("disable_request_logging", False),
-            sleep_interval=CONFIG["yandex"].get("sleep_interval", 2.0),
-            model_version=CONFIG["yandex"].get("model_version", "latest"),
+            api_key=cfg["yandex"]["api_key"],
+            folder_id=cfg["yandex"]["folder_id"],
+            doc_model_name=cfg["yandex"].get("doc_model_name", "text-search-doc"),
+            disable_request_logging=cfg["yandex"].get("disable_request_logging", False),
+            sleep_interval=cfg["yandex"].get("sleep_interval", 2.0),
+            model_version=cfg["yandex"].get("model_version", "latest"),
             grpc_metadata=[],
         )
     else:
@@ -45,7 +45,7 @@ def get_embedding_function(cfg: dict) -> Embeddings:
         return CustomEmbeddings(dummy_embed)
 
     
-
+# method to get standard embeddings
 def embed_documents(docs: Union[Document, List[Document]]) -> Tuple[List[dict], Optional[str]]:
     if isinstance(docs, Document):
         docs = [docs]    
@@ -58,12 +58,12 @@ def embed_documents(docs: Union[Document, List[Document]]) -> Tuple[List[dict], 
             if not YandexGPTEmbeddings:
                 raise ImportError("YandexGPTEmbeddings not available. Please install langchain-community")
             logger.debug("Using YandexGPT embeddings provider.")
-            api_key = CONFIG["yandex"]["api_key"]
-            folder_id = CONFIG["yandex"]["folder_id"]
-            disable_request_logging = CONFIG["yandex"].get("disable_request_logging", False)
-            sleep_interval = CONFIG["yandex"].get("sleep_interval", 2.0)
-            doc_model_name = CONFIG["yandex"].get("doc_model_name", "text-search-doc")
-            model_version = CONFIG["yandex"].get("model_version", "latest")
+            api_key = CONFIG["embedding"]["yandex"]["api_key"]
+            folder_id = CONFIG["embedding"]["yandex"]["folder_id"]
+            disable_request_logging = CONFIG["embedding"]["yandex"].get("disable_request_logging", False)
+            sleep_interval = CONFIG["embedding"]["yandex"].get("sleep_interval", 2.0)
+            doc_model_name = CONFIG["embedding"]["yandex"].get("doc_model_name", "text-search-doc")
+            model_version = CONFIG["embedding"]["yandex"].get("model_version", "latest")
             embedder = YandexGPTEmbeddings(
                 api_key=api_key,
                 folder_id=folder_id,

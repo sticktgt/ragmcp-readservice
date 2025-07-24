@@ -6,13 +6,14 @@ from .loaders.document_loader import load_document
 from .sources.local import LocalFileSource
 from .sources.s3 import S3FileSource
 from .config import CONFIG
-from .utils.splitters import split_documents_lazy
+# from .utils.splitters import split_documents_lazy
 from .utils.logger import get_logger
 from .utils.embedding import get_embedding_function
 from .storage.base import VectorStoreBase
 from .storage.factory import get_vector_store
 from .storage.search import search_main
 import traceback
+from .splitters.document_splitter import split_documents_lazy
 
 logger = get_logger()
 
@@ -27,7 +28,7 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
     file_parts = 0
     try:
         logger.info(f"Processing: {file_id}")
-        docs, load_error, source_hash = load_document(file_id, content)
+        docs, load_error, source_hash = load_document(file_id, content, CONFIG["file_types"])
         if load_error:
             logger.error(f"[LOAD ERROR] {file_id}: {load_error}")
             err_log.write(f"[LOAD ERROR] {file_id}: {load_error}\n")
@@ -69,7 +70,7 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
                         store.delete_by_hash(existing_hash)
 
         ext = Path(file_id).suffix.lower()
-        split_docs, split_error = split_documents_lazy(docs, file_ext=ext, config=CONFIG["splitters"])
+        split_docs, split_error = split_documents_lazy(docs, file_ext=ext, config=CONFIG["file_types"])
         if split_error:
             logger.error(f"[SPLIT ERROR] {file_id}: {split_error}")
             err_log.write(f"[SPLIT ERROR] {file_id}: {split_error}\n")
@@ -125,10 +126,10 @@ def process_streaming():
         store = get_vector_store(CONFIG["storage"], embedding_function)
 
         sources = []
-        if CONFIG.get("use_local"):
-            sources.append(LocalFileSource(CONFIG["local_path"], CONFIG["file_types"]))
-        if CONFIG.get("use_s3"):
-            sources.append(S3FileSource(CONFIG, CONFIG["file_types"]))
+        if CONFIG["sources"].get("use_local"):
+            sources.append(LocalFileSource(CONFIG["sources"]["local_path"], CONFIG["file_types"]))
+        if CONFIG["sources"].get("use_s3"):
+            sources.append(S3FileSource(CONFIG["sources"], CONFIG["file_types"]))
 
         with open(error_path, "w", encoding="utf-8") as err_log:
             for source in sources:

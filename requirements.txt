@@ -19,3 +19,6 @@ langchain_postgres
 #pymilvus>=2.3.4
 #tqdm
 #python-dotenv
+docx2txt
+networkx
+openpyxl

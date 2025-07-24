@@ -4,64 +4,46 @@ import traceback
 from pathlib import Path
 from typing import Optional, Tuple, Iterator
 from langchain_core.documents import Document
-from langchain_community.document_loaders import (
-    TextLoader, CSVLoader, PDFPlumberLoader,
-    UnstructuredWordDocumentLoader, UnstructuredHTMLLoader,
-)
 from ..utils.encoding import detect_encoding
 from ..utils.hash import compute_file_hash
 from readservice.utils.logger import get_logger
+from .loader_factory import get_loader
+
 
 logger = get_logger()
 
-FILE_LOADERS = {
-    ".txt": TextLoader,
-    ".csv": CSVLoader,
-    ".pdf": PDFPlumberLoader,
-    ".docx": UnstructuredWordDocumentLoader,
-    ".doc": UnstructuredWordDocumentLoader,
-    ".html": UnstructuredHTMLLoader,
-}
 
-def load_document(file_id: str, content: Optional[bytes]) -> Tuple[Iterator[Document], Optional[str], Optional[str]]:
+def save_temp_file(file_id: str, content: bytes, suffix: str) -> str:
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(content)
+        tmp.flush()
+        file_path = tmp.name
+    return file_path
+
+
+def load_document(file_id: str, content: Optional[bytes], file_types_cfg: dict) -> Tuple[Iterator[Document], Optional[str], Optional[str]]:
     ext = Path(file_id).suffix.lower()
-    loader_cls = FILE_LOADERS.get(ext)
-    if not loader_cls:
-        return iter([]), f"Unsupported file type: {file_id}", None
 
-    # source_hash = compute_file_hash(content) if content else None
-    source_hash = None
+    loader = get_loader(ext, file_types_cfg)
+    if not loader:
+        return iter([]), f"Unsupported file type: {ext}", None
 
+    # source_hash = None
     try:
         if content:
             source_hash = compute_file_hash(content) if content else None
-            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
-                tmp.write(content)
-                tmp.flush()
-                file_path = tmp.name
+            file_path = save_temp_file(file_id, content, ext)
         else:
             file_path = file_id
-
-        if ext in [".txt", ".csv"]:
-            if content:
-                encoding = detect_encoding(content)
-            else:
-                with open(file_path, "rb") as f:
-                    source_hash = compute_file_hash(f.read())
-                    encoding = detect_encoding(f.read())
-            if ext == ".txt":
-                loader = TextLoader(file_path, encoding=encoding)
-            else:  # ".csv"
-                loader = CSVLoader(file_path, encoding=encoding)
-        else:
             with open(file_path, "rb") as f:
-                source_hash = compute_file_hash(f.read())            
-            loader = loader_cls(file_path)
+                source_hash = compute_file_hash(f.read())
 
         if hasattr(loader, "lazy_load"):
-            docs = loader.lazy_load()
+            docs, error_message = loader.lazy_load(file_path)
         else:
-            docs = iter(loader.load())
+            docs, error_message = loader.load(file_path)
+        if error_message:
+            return iter([]), error_message, source_hash
 
         def _inject_metadata(docs_iter):
             for doc in docs_iter:

@@ -1,45 +1,57 @@
 CONFIG = {
-    "use_local": True,
-    "use_s3": False,
-
     "file_types": {
-        ".txt": "TextLoader",
-        ".csv": "CSVLoader",
-        ".pdf": "PDFPlumberLoader",
-        ".docx": "UnstructuredWordDocumentLoader",
-        ".doc": "UnstructuredWordDocumentLoader",
-    },
-    "splitters": {
         ".txt": {
-            "type": "recursive",
-            "chunk_size": 500,
-            "chunk_overlap": 50,
-            "separators": ["\n\n", "\n", " ", ""]
-        },
-        ".pdf": {
-            "type": "token",
-            "chunk_size": 500,
-            "chunk_overlap": 50,
-            "encoding_name": "cl100k_base"
-        },
-        ".docx": {
-            "type": "nltk",
-            "chunk_size": 800,
-            "chunk_overlap": 100,
-            "language": "russian"
-        },
-        ".doc": {
-            "type": "nltk",
-            "chunk_size": 800,
-            "chunk_overlap": 100,
-            "language": "russian"
+            "loader": "TextLoader",
+            "splitter": {
+                "type": "RecursiveCharacterTextSplitter",
+                # "type": "none",
+                "chunk_size": 1000,
+                "chunk_overlap": 50,
+                "separators": ["\n\n", "\n", " ", ""]
+            }
         },
         ".csv": {
-            "type": "none"
+            "loader": "CSVLoader",
+            "splitter": {
+                "type": "none"
+            }
+        },
+        ".pdf": {
+            "loader": "PDFPlumberLoader",
+            "splitter": {
+                "type": "TokenTextSplitter",
+                "chunk_size": 500,
+                "chunk_overlap": 50,
+                "encoding_name": "cl100k_base"
+            }
+        },
+        ".docx": {
+            "loader": "UnstructuredWordDocumentLoader",
+            "splitter": {
+                "type": "NLTKTextSplitter",
+                "chunk_size": 800,
+                "chunk_overlap": 100,
+                "language": "russian"
+            }
+        },
+        ".xlsx": {
+            "loader": "UnstructuredExcelLoader",
+            "splitter": {
+                "type": "none"
+            }
+        },
+        ".html": {
+            "loader": "UnstructuredHTMLLoader",
+            "splitter": {
+                "type": "TokenTextSplitter",
+                "chunk_size": 500,
+                "chunk_overlap": 50,
+                "encoding_name": "cl100k_base"
+            }
         }
     },
     "embedding": {
-        "provider": "yandex",  # yandex or "fake"
+        "provider": "fake",  # yandex or "fake"
         "dim": 256,  # dimension of the embeddings
     },
     "yandex": {
@@ -50,14 +62,19 @@ CONFIG = {
         "sleep_interval": 2.0,
         "disable_request_logging": False,
     },
-    "s3": {
-        "s3_bucket": "files",
-        "s3_prefix": "",
-        "endpoint_url": "http://localhost:9000",
-        "aws_access_key_id": "minioadmin",  # os.getenv("S3_ACCESS_KEY", "minioadmin"),
-        "aws_secret_access_key": "minioadmin",  # os.getenv("S3_SECRET_KEY", "minioadmin"),
-        "use_ssl": False,
-        "signature_version": "s3v4",
+    "sources": {
+        "use_local": True,
+        "use_s3": False,        
+        "local_path": "/home/stickt/python/local_docs",
+        "s3": {
+            "s3_bucket": "files",
+            "s3_prefix": "",
+            "endpoint_url": "http://localhost:9000",
+            "aws_access_key_id": "minioadmin",  # os.getenv("S3_ACCESS_KEY", "minioadmin"),
+            "aws_secret_access_key": "minioadmin",  # os.getenv("S3_SECRET_KEY", "minioadmin"),
+            "use_ssl": False,
+            "signature_version": "s3v4",
+        },    
     },
     "storage": {
         "store_type": "pgvector",  # "milvus" or "pgvector"
@@ -83,8 +100,7 @@ CONFIG = {
         "search_query": "the work of a data analyst",
         "search_top_k": 5,
     },
-    "local_path": "/home/stickt/python/local_docs",
     "output_dir": "./output_docs",
     "debug": True,
-    "delete_old_vectors": False,  # whether to delete old vectors by hashcode
+    "delete_old_vectors": True,  # whether to delete old vectors by hashcode
 }
