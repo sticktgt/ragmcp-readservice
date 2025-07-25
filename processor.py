@@ -6,9 +6,8 @@ from .loaders.document_loader import load_document
 from .sources.local import LocalFileSource
 from .sources.s3 import S3FileSource
 from .config import CONFIG
-# from .utils.splitters import split_documents_lazy
 from .utils.logger import get_logger
-from .utils.embedding import get_embedding_function
+from .embedding.embedding import get_embedding_function
 from .storage.base import VectorStoreBase
 from .storage.factory import get_vector_store
 from .storage.search import search_main

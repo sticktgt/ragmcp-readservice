@@ -51,16 +51,22 @@ CONFIG = {
         }
     },
     "embedding": {
-        "provider": "fake",  # yandex or "fake"
+        "provider": "langchain_fake",  # "yandex", "lite" or "langchain_fake" ("fake" for 000 dummy embeddings)
         "dim": 256,  # dimension of the embeddings
-    },
-    "yandex": {
-        "api_key": "###", # os.getenv("YANDEX_API_KEY", "")
-        "folder_id": "b1g2758uu6otr3b7s64e", # os.getenv("YANDEX_FOLDER_ID", "")
-        "doc_model_name": "text-search-doc",
-        "model_version": "latest",  # or specify a version like "2023-10-01"
-        "sleep_interval": 2.0,
-        "disable_request_logging": False,
+        "lite": {
+            "model": "yandex",  # or another ChatLiteLLM-compatible name
+            "api_base": "http://localhost:8000",
+            "api_key": "###", # os.getenv("YANDEX_API_KEY", "")
+            "folder_id": "b1g2758uu6otr3b7s64e" # os.getenv("YANDEX_FOLDER_ID", "")
+        },
+        "yandex": {
+            "api_key": "###", # os.getenv("YANDEX_API_KEY", "")
+            "folder_id": "b1g2758uu6otr3b7s64e", # os.getenv("YANDEX_FOLDER_ID", "")
+            "doc_model_name": "text-search-doc",
+            "model_version": "latest",  # or specify a version like "2023-10-01"
+            "sleep_interval": 2.0,
+            "disable_request_logging": False,
+        }
     },
     "sources": {
         "use_local": True,
