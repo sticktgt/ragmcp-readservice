@@ -8,10 +8,10 @@ from .base import BaseEmbedder
 def get_embedder(cfg: dict) -> BaseEmbedder:
     provider = cfg.get("provider", "fake")
 
-    if provider == "yandex":
-        return YandexEmbedder(cfg["yandex"])
-    elif provider == "lite":
-        return LiteLLMEmbedder(cfg["lite"])
+    if provider == "yandexGPT":
+        return YandexEmbedder(cfg["yandexGPT"])
+    elif provider == "liteLLM":
+        return LiteLLMEmbedder(cfg["liteLLM"])
     elif provider == "langchain_fake":
         return LangchainFakeEmbedder()
     else:

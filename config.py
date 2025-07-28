@@ -51,15 +51,15 @@ CONFIG = {
         }
     },
     "embedding": {
-        "provider": "langchain_fake",  # "yandex", "lite" or "langchain_fake" ("fake" for 000 dummy embeddings)
+        "provider": "liteLLM",  # "yandexGPT", "liteLLM" or "langchain_fake" ("fake" for 000 dummy embeddings)
         "dim": 256,  # dimension of the embeddings
-        "lite": {
-            "model": "yandex",  # or another ChatLiteLLM-compatible name
-            "api_base": "http://localhost:8000",
+        "liteLLM": {
+            "model": "yandex-embedding",  # or another ChatLiteLLM-compatible name
+            "api_base": "http://localhost:4000",
             "api_key": "###", # os.getenv("YANDEX_API_KEY", "")
             "folder_id": "b1g2758uu6otr3b7s64e" # os.getenv("YANDEX_FOLDER_ID", "")
         },
-        "yandex": {
+        "yandexGPT": {
             "api_key": "###", # os.getenv("YANDEX_API_KEY", "")
             "folder_id": "b1g2758uu6otr3b7s64e", # os.getenv("YANDEX_FOLDER_ID", "")
             "doc_model_name": "text-search-doc",
