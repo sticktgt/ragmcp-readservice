@@ -1,7 +1,7 @@
 import os
 import json
 import aiohttp
-from litellm.utils import EmbeddingResponse
+from litellm.types.utils import EmbeddingResponse
 
 class YandexCustomLLM:
     def __init__(self, *args, **kwargs):
