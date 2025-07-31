@@ -26,6 +26,7 @@ class LocalFileSource:
                     }
                     yield str(file_path), None, metadata, None
                 except Exception as e:
-                    traceback_str = traceback.format_exc()
-                    logger.debug(traceback_str)
-                    yield file_path.name, None, {}, str(e)                    
+                    error_message = f"error processing LocalFileSource {self.root}: {e}"
+                    logger.error(e)
+                    logger.debug(traceback.format_exc())                    
+                    yield file_path.name, None, {}, error_message                    

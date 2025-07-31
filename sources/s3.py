@@ -51,6 +51,7 @@ class S3FileSource:
                         logger.debug(traceback_str)                    
                         yield key, None, {}, str(e)
         except Exception as outer_error:
-            traceback_str = traceback.format_exc()
-            logger.debug(traceback_str)                  
-            yield "s3_connection", None, {}, str(outer_error)                        
+            error_message = f"error processing S3FileSource {self.endpoint_url}: {outer_error}"
+            logger.error(outer_error)
+            logger.debug(traceback.format_exc())                    
+            yield "s3_connection", None, {}, error_message

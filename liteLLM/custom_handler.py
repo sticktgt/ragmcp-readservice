@@ -29,7 +29,7 @@ class YandexCustomLLM:
         if not isinstance(input, list):
             input = [input]
 
-        model_uri = f"emb://{folder_id}/text-search-query/latest"
+        model_uri = f"emb://{folder_id}/text-search-doc/latest"
         url = "https://llm.api.cloud.yandex.net/foundationModels/v1/textEmbedding"
 
         headers = {

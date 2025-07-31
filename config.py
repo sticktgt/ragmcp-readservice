@@ -1,112 +1,49 @@
-CONFIG = {
-    "file_types": {
-        ".txt": {
-            "loader": "TextLoader",
-            "splitter": {
-                "type": "RecursiveCharacterTextSplitter",
-                # "type": "none",
-                "chunk_size": 1000,
-                "chunk_overlap": 50,
-                "separators": ["\n\n", "\n", " ", ""]
-            }
-        },
-        ".csv": {
-            "loader": "CSVLoader",
-            "splitter": {
-                "type": "none"
-            }
-        },
-        ".pdf": {
-            "loader": "PDFPlumberLoader",
-            "splitter": {
-                "type": "TokenTextSplitter",
-                "chunk_size": 500,
-                "chunk_overlap": 50,
-                "encoding_name": "cl100k_base"
-            }
-        },
-        ".docx": {
-            "loader": "UnstructuredWordDocumentLoader",
-            "splitter": {
-                "type": "NLTKTextSplitter",
-                "chunk_size": 800,
-                "chunk_overlap": 100,
-                "language": "russian"
-            }
-        },
-        ".xlsx": {
-            "loader": "UnstructuredExcelLoader",
-            "splitter": {
-                "type": "none"
-            }
-        },
-        ".html": {
-            "loader": "UnstructuredHTMLLoader",
-            "splitter": {
-                "type": "TokenTextSplitter",
-                "chunk_size": 500,
-                "chunk_overlap": 50,
-                "encoding_name": "cl100k_base"
-            }
-        }
-    },
-    "embedding": {
-        "provider": "liteLLM",  # "yandexGPT", "liteLLM" or "langchain_fake" ("fake" for 000 dummy embeddings)
-        "dim": 256,  # dimension of the embeddings
-        "liteLLM": {
-            "model": "yandex-embedding",  # or another ChatLiteLLM-compatible name
-            "api_base": "http://localhost:4000",
-            "api_key": "###", # os.getenv("YANDEX_API_KEY", "")
-            "folder_id": "b1g2758uu6otr3b7s64e" # os.getenv("YANDEX_FOLDER_ID", "")
-        },
-        "yandexGPT": {
-            "api_key": "###", # os.getenv("YANDEX_API_KEY", "")
-            "folder_id": "b1g2758uu6otr3b7s64e", # os.getenv("YANDEX_FOLDER_ID", "")
-            "doc_model_name": "text-search-doc",
-            "model_version": "latest",  # or specify a version like "2023-10-01"
-            "sleep_interval": 2.0,
-            "disable_request_logging": False,
-        }
-    },
-    "sources": {
-        "use_local": True,
-        "use_s3": False,        
-        "local_path": "/home/stickt/python/local_docs",
-        "s3": {
-            "s3_bucket": "files",
-            "s3_prefix": "",
-            "endpoint_url": "http://localhost:9000",
-            "aws_access_key_id": "minioadmin",  # os.getenv("S3_ACCESS_KEY", "minioadmin"),
-            "aws_secret_access_key": "minioadmin",  # os.getenv("S3_SECRET_KEY", "minioadmin"),
-            "use_ssl": False,
-            "signature_version": "s3v4",
-        },    
-    },
-    "storage": {
-        "store_type": "pgvector",  # "milvus" or "pgvector"
-        "milvus": {
-            "host": "localhost",
-            "port": 19530,
-            "collection": "doc_vectors",
-            "drop_old": False,
-            "auto_id": True,
-            "alias": "default",
-        },
-        "pgvector": {
-            "host": "localhost",
-            "port": 5432,
-            "user": "postgres",
-            "password": "postgres",
-            "database": "vector_db",
-            "collection": "doc_vectors",
-            "use_jsonb": True,  # use JSONB for metadata
-        }
-    },
-    "search": {
-        "search_query": "the work of a data analyst",
-        "search_top_k": 5,
-    },
-    "output_dir": "./output_docs",
-    "debug": True,
-    "delete_old_vectors": True,  # whether to delete old vectors by hashcode
-}
+import os
+import yaml
+from pathlib import Path
+from readservice.utils.logger import get_logger
+
+logger = get_logger()
+
+DEFAULT_CONFIG_PATH = Path(__file__).parent / "config.yaml"
+
+def load_yaml_config(file_path: Path) -> dict:
+    if not file_path.exists():
+        logger.warning(f"Config file not found at {file_path}, using empty config.")
+        return {}
+    with open(file_path, "r") as f:
+        return yaml.safe_load(f)
+
+def apply_env_overrides(config: dict, prefix="") -> dict:
+    for key, value in config.items():
+        full_key = f"{prefix}__{key}".upper() if prefix else key.upper()
+        if isinstance(value, dict):
+            config[key] = apply_env_overrides(value, full_key)
+        else:
+            env_value = os.getenv(full_key)
+            if env_value is not None:
+                logger.debug(f"Overriding {full_key} from env: {env_value}")
+                config[key] = _cast_type(env_value, type(value))
+    return config
+
+def _cast_type(value: str, desired_type):
+    try:
+        if desired_type == bool:
+            return value.lower() in ("1", "true", "yes", "on")
+        elif desired_type == int:
+            return int(value)
+        elif desired_type == float:
+            return float(value)
+        elif desired_type == list:
+            return yaml.safe_load(value)
+        else:
+            return value
+    except Exception as e:
+        logger.warning(f"Could not cast '{value}' to {desired_type}: {e}")
+        return value
+
+def load_config(config_path: Path = DEFAULT_CONFIG_PATH) -> dict:
+    base_config = load_yaml_config(config_path)
+    return apply_env_overrides(base_config, "RS")
+
+CONFIG = load_config()

@@ -3,8 +3,37 @@ from langchain_openai import OpenAIEmbeddings
 from readservice.utils.logger import get_logger
 from .base import BaseEmbedder
 import json
+from ..config import CONFIG
+
+import tiktoken
+from tiktoken import model
 
 logger = get_logger()
+
+# === patch tiktoken to support custom model ===
+CUSTOM_MODEL_NAME = CONFIG["embedding"]["liteLLM"].get("model", "yandex-embedding")
+FALLBACK_ENCODING_NAME = "cl100k_base"
+
+_original_encoding_name_for_model = model.encoding_name_for_model
+_original_encoding_for_model = model.encoding_for_model
+
+
+def patched_encoding_name_for_model(model_name: str) -> str:
+    if model_name == CUSTOM_MODEL_NAME:
+        return FALLBACK_ENCODING_NAME
+    return _original_encoding_name_for_model(model_name)
+
+
+def patched_encoding_for_model(model_name: str) -> tiktoken.Encoding:
+    if model_name == CUSTOM_MODEL_NAME:
+        return tiktoken.get_encoding(FALLBACK_ENCODING_NAME)
+    return _original_encoding_for_model(model_name)
+
+
+# Apply patch once
+model.encoding_name_for_model = patched_encoding_name_for_model
+model.encoding_for_model = patched_encoding_for_model
+# === End patch ===
 
 
 class YandexOpenAIEmbeddings(OpenAIEmbeddings):
@@ -26,7 +55,6 @@ class YandexOpenAIEmbeddings(OpenAIEmbeddings):
 
         return base
 
-
 class LiteLLMEmbedder(BaseEmbedder):
     def __init__(self, cfg: dict):
         self.cfg = cfg
@@ -34,8 +62,9 @@ class LiteLLMEmbedder(BaseEmbedder):
 
     def get_embedding_function(self):
         return YandexOpenAIEmbeddings(
-            model=self.cfg.get("model", "yandex-embedding"),
-            openai_api_base=self.cfg.get("api_base", "http://localhost:4000"),
+            # model=self.cfg.get("model", "yandex-embedding"),
+            model=CUSTOM_MODEL_NAME,
+            openai_api_base=self.cfg.get("api_base"),
             openai_api_key="unused",  # Required by LangChain but ignored by LiteLLM
             folder_id=self.cfg.get("folder_id"),
             api_key=self.cfg.get("api_key"),

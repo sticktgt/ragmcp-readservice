@@ -10,6 +10,9 @@ logger = get_logger()
 
 #  1. LangChain built-in FakeEmbedder
 class LangchainFakeEmbedder(BaseEmbedder):
+    def __init__(self):
+        logger.debug("Using LangchainFakeEmbedder embeddings provider.")    
+
     def get_embedding_function(self) -> Embeddings:
         return FakeEmbeddings(size=CONFIG["embedding"]["dim"])
 
@@ -32,6 +35,9 @@ class CustomDummyEmbeddings(Embeddings):
         return self.embed_documents([text])[0]
 
 class CustomDummyEmbedder(BaseEmbedder):
+    def __init__(self):
+        logger.debug("Using CustomDummyEmbedder embeddings provider.")
+
     def get_embedding_function(self) -> Embeddings:
         return CustomDummyEmbeddings()
 

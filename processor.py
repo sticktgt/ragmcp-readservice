@@ -33,9 +33,9 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
             err_log.write(f"[LOAD ERROR] {file_id}: {load_error}\n")
             return 0
 
-        if CONFIG.get("debug", True):
-            docs = list(docs)  # Materialize the iterator once for debugging
-            file_parts = len(docs)
+        # if CONFIG.get("debug", True):
+        docs = list(docs)  # Materialize the iterator once for debugging
+        file_parts = len(docs)
 
         if source_hash:
             # Check if the document already exists in Milvus by hashcode
@@ -43,7 +43,7 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
             if exists_error:
                 logger.error(f"[CHECK ERROR] {file_id}: {exists_error}")
                 err_log.write(f"[CHECK ERROR] {file_id}: {exists_error}\n")
-                return 0            
+                return 0
             if is_exists:
                 # if the document already exists in Milvus by hashcode
                 logger.info(f"[SKIP] {file_id} (hash exists)")
@@ -88,20 +88,14 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
                 store.delete_by_hash(source_hash)
             return -1
 
-        # TODO: implement debug mode for the PGVectorStore
-        # if CONFIG.get("debug", True):
-        #    if source_hash:
-        #        store.retrieve_vectors_by_hashcode(source_hash)
-        #        # store.print_by_hashcode(source_hash)
-
         for doc in chunk_docs:
             if CONFIG.get("debug", True):
                 save_doc_text(doc, doc_index, output_dir)
-            save_metadata_entry(doc, doc_index, meta_path)
+                save_metadata_entry(doc, doc_index, meta_path)
             doc_index += 1
 
-        if CONFIG.get("debug", True):
-            logger.info(f"Processed {file_id}: {file_parts} parts, {len(chunk_docs)} chunks")
+        logger.info(f"Processed {file_id}: {file_parts} parts, {len(chunk_docs)} chunks")
+
         return len(chunk_docs)
 
     except Exception as e:
@@ -149,9 +143,9 @@ def process_streaming():
 
             err_log.flush()
 
-        #  Run test query against Milvus and log results
+        logger.info("Processed documents count: %d", docs_count)
+        #  Run test query and log results
         if CONFIG.get("debug", True):
-            logger.info("Processed documents count: %d", docs_count)
             if docs_count > 0:
                 search_main(store, CONFIG)
 

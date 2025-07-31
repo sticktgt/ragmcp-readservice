@@ -17,12 +17,12 @@ class MilvusStore(VectorStoreBase):
             self.cfg = cfg["milvus"]
             self.vstore = Milvus(
                 collection_name=cfg["milvus"]["collection"],
-                connection_args={"host": cfg["milvus"]["host"], "port": cfg["milvus"]["port"]},
+                connection_args={"uri": cfg["milvus"]["uri"]},
                 embedding_function=embedding_function,
                 drop_old=cfg["milvus"]["drop_old"],
                 auto_id=cfg["milvus"]["auto_id"],
             )
-            logger.info(f"Using Milvus at {cfg["milvus"]['host']}:{cfg["milvus"]['port']}")
+            logger.info(f"Using Milvus at {cfg["milvus"]['uri']}")
         except Exception as e:
             logger.error(f"[MILVUS INIT ERROR]: {e}")
             logger.debug(traceback.format_exc())
