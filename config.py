@@ -22,7 +22,7 @@ def apply_env_overrides(config: dict, prefix="") -> dict:
         else:
             env_value = os.getenv(full_key)
             if env_value is not None:
-                logger.debug(f"Overriding {full_key} from env: {env_value}")
+                logger.debug(f"Overriding {full_key} from env")
                 config[key] = _cast_type(env_value, type(value))
     return config
 
@@ -39,7 +39,7 @@ def _cast_type(value: str, desired_type):
         else:
             return value
     except Exception as e:
-        logger.warning(f"Could not cast '{value}' to {desired_type}: {e}")
+        logger.warning(f"Could not cast value to {desired_type}: {e}")
         return value
 
 def load_config(config_path: Path = DEFAULT_CONFIG_PATH) -> dict:
