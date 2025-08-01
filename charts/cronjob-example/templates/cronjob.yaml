@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.name }}
+spec:
+  schedule: "{{ .Values.schedule }}"
+  concurrencyPolicy: {{ .Values.concurrencyPolicy }}
+  successfulJobsHistoryLimit: {{ .Values.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.failedJobsHistoryLimit }}
+  startingDeadlineSeconds: {{ .Values.startingDeadlineSeconds }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: readservice
+              image: "{{ .Values.image }}"
+              imagePullPolicy: {{ .Values.pullPolicy }}
+              command: ["/bin/bash"]
+              args: ["-c", "python -m readservice.main"]
+              env:
+                {{ "\n" | trim }}{{ include "readservice.flattenEnv" .Values.env | indent 16 | trim }}
+              volumeMounts:
+              {{- range .Values.volumeMounts }}
+               - name: {{ .name }}
+                 mountPath: {{ .mountPath }}
+                 {{- if .readOnly }}
+                 readOnly: {{ .readOnly }}
+                 {{- end }}
+              {{- end }}
+          restartPolicy: {{ .Values.restartPolicy }}
+          volumes:
+            {{- range .Values.volumes }}
+            - name: {{ .name }}
+              {{- if .emptyDir }}
+              emptyDir:
+                {{- if .emptyDir.medium }}
+                medium: {{ .emptyDir.medium }}
+                {{- end }}
+                {{- if .emptyDir.sizeLimit }}
+                sizeLimit: {{ .emptyDir.sizeLimit }}
+                {{- end }}
+              {{- end }}
+              {{- if .hostPath }}
+              hostPath:
+                path: {{ .hostPath.path }}
+                {{- if .hostPath.type }}
+                type: {{ .hostPath.type }}
+                {{- end }}
+              {{- end }}
+            {{- end }}

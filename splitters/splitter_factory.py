@@ -1,8 +1,9 @@
 from .splitters import getRecursiveCharacterTextSplitter, getTokenTextSplitter, getNLTKTextSplitter
 
-def get_splitter(splitter_config: dict):
-    splitter_type = splitter_config.get("type", "recursive")
-
+def get_splitter(splitter_type: str, config: dict):
+    
+    splitters = config.get("splitters", {})
+    splitter_config = splitters.get(splitter_type, {})
     if splitter_type == "RecursiveCharacterTextSplitter":
         return getRecursiveCharacterTextSplitter(splitter_config)
     elif splitter_type == "TokenTextSplitter":

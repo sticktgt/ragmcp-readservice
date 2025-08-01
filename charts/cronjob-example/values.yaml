@@ -1,0 +1,43 @@
+name: readservice-cron
+image: readservice:latest
+pullPolicy: IfNotPresent
+schedule: "*/5 * * * *"
+concurrencyPolicy: Forbid
+successfulJobsHistoryLimit: 2
+failedJobsHistoryLimit: 2
+restartPolicy: OnFailure
+backoffLimit: 1
+startingDeadlineSeconds: 30
+env:
+  embedding:
+    provider:
+     value: yandexGPT
+    yandexGPT:
+      api_key:
+        valueFrom:
+          secretKeyRef:
+            name: readservice-secrets
+            key: yandex-api-key
+      folder_id:
+        valueFrom:
+          secretKeyRef:
+            name: readservice-secrets
+            key: yandex-folder-id
+  sources:
+    use_local:
+     value: true
+    use_s3:
+     value: true
+  storage:
+    store_type:
+      value: milvus
+  delete_old_vectors:
+    value: true
+
+volumeMounts:
+  - mountPath: /app/local_docs
+    name: local-docs
+volumes:
+  - name: local-docs
+    hostPath:
+      path: /home/stickt/python/local_docs

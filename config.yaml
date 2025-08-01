@@ -1,40 +1,36 @@
-file_types:
-  .txt:
-    loader: TextLoader
-    splitter:
-      type: RecursiveCharacterTextSplitter
+splitters:
+  RecursiveCharacterTextSplitter:
       chunk_size: 1000
       chunk_overlap: 50
       separators: ["\n\n", "\n", " ", ""]
-  .csv:
-    loader: CSVLoader
-    splitter:
-      type: none
-  .pdf:
-    loader: PDFPlumberLoader
-    splitter:
-      type: TokenTextSplitter
+  TokenTextSplitter:
       chunk_size: 500
       chunk_overlap: 50
       encoding_name: cl100k_base
-  .docx:
-    loader: UnstructuredWordDocumentLoader
-    splitter:
-      type: NLTKTextSplitter
+  NLTKTextSplitter:
       chunk_size: 800
       chunk_overlap: 100
       language: russian
+
+file_types:
+  .txt:
+    loader: TextLoader
+    splitter: RecursiveCharacterTextSplitter
+  .csv:
+    loader: CSVLoader
+    splitter: none
+  .pdf:
+    loader: PDFPlumberLoader
+    splitter: TokenTextSplitter
+  .docx:
+    loader: UnstructuredWordDocumentLoader
+    splitter: NLTKTextSplitter
   .xlsx:
     loader: UnstructuredExcelLoader
-    splitter:
-      type: none
+    splitter: none
   .html:
     loader: UnstructuredHTMLLoader
-    splitter:
-      type: TokenTextSplitter
-      chunk_size: 500
-      chunk_overlap: 50
-      encoding_name: cl100k_base
+    splitter: TokenTextSplitter
 
 embedding:
   provider: langchain_fake # "yandexGPT", "liteLLM" or "langchain_fake" ("fake" for 000 dummy embeddings)

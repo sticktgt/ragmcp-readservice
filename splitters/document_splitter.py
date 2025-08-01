@@ -8,9 +8,8 @@ logger = get_logger()
 
 def split_documents_lazy(docs: Iterable[Document], file_ext: str, config: dict) -> Tuple[Iterator[Document], Optional[str]]:    
     try:
-        type_config = config.get(file_ext, {})
-        splitter_config = type_config["splitter"]
-        splitter = get_splitter(splitter_config)
+        type_config = config["file_types"].get(file_ext, {})
+        splitter = get_splitter(type_config["splitter"], config)
 
         if splitter == None:
            return iter(docs), None

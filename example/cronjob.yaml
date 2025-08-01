@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: readservice-cron
+spec:
+  schedule: "*/5 * * * *"  # every 5 minutes
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 30
+  jobTemplate:
+    spec:
+      backoffLimit: 1  # limit retries for failed jobs
+      template:
+        spec:
+          containers:
+            - name: readservice
+              image: readservice:latest
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash"]
+              args: ["-c", "python -m readservice.main"]
+              env:
+                - name: RS__SOURCES__USE_LOCAL
+                  value: "true"
+                - name: RS__SOURCES__USE_S3
+                  value: "true"
+                - name: RS__STORAGE__STORE_TYPE
+                  value: "milvus"
+                - name: RS__DELETE_OLD_VECTORS
+                  value: "true"
+                - name: RS__EMBEDDING__PROVIDER
+                  value: "yandexGPT"
+                - name: RS__EMBEDDING__YANDEXGPT__API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: readservice-secrets
+                      key: yandex-api-key
+                - name: RS__EMBEDDING__YANDEXGPT__FOLDER_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: readservice-secrets
+                      key: yandex-folder-id
+              volumeMounts:
+                - name: local-docs
+                  mountPath: /app/local_docs
+          restartPolicy: OnFailure
+          volumes:
+            - name: local-docs
+              hostPath:
+                path: /home/stickt/python/local_docs
+                type: Directory

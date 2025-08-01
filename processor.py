@@ -69,7 +69,7 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
                         store.delete_by_hash(existing_hash)
 
         ext = Path(file_id).suffix.lower()
-        split_docs, split_error = split_documents_lazy(docs, file_ext=ext, config=CONFIG["file_types"])
+        split_docs, split_error = split_documents_lazy(docs, file_ext=ext, config=CONFIG)
         if split_error:
             logger.error(f"[SPLIT ERROR] {file_id}: {split_error}")
             err_log.write(f"[SPLIT ERROR] {file_id}: {split_error}\n")
