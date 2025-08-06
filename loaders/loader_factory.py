@@ -6,6 +6,9 @@ from .loaders import TextLD
 from .loaders import CSVLD
 from .loaders import UnstructuredHTMLLD
 from .loaders import UnstructuredExcelLD
+from .loaders import PyMuPDFLD
+from .loaders import BSHTMLLD
+from .loaders import UnstructuredPowerPointLD
 from .base_loader import BaseLoader
 from readservice.utils.logger import get_logger
 
@@ -19,6 +22,9 @@ LOADER_MAPPING: dict[str, Type[BaseLoader]] = {
     "TextLoader": CSVLD,
     "UnstructuredHTMLLoader": UnstructuredHTMLLD,
     "UnstructuredExcelLoader": UnstructuredExcelLD,
+    "PyMuPDFLoader": PyMuPDFLD,
+    "BSHTMLLoader": BSHTMLLD,
+    "UnstructuredPowerPointLoader": UnstructuredPowerPointLD
 }
 
 

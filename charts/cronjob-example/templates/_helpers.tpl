@@ -1,3 +1,9 @@
+{{- define "common.helm-labels" -}}
+app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+app.kubernetes.io/instance: {{ .Release.Name | quote }}
+app.kubernetes.io/revision: {{ .Release.Revision | quote }}
+app.dognauts/subjectArea: {{ .Values.subjectArea }}
+{{- end -}}
 {{- define "readservice.flattenEnv" -}}
 {{- range $k, $v := . }}
 {{- include "readservice.flattenEnvItem" (dict "prefix" (upper $k) "value" $v) }}
@@ -24,4 +30,3 @@
 {{- end }}
 {{- end }}
 {{- end }}
-

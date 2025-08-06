@@ -7,6 +7,9 @@ from langchain_community.document_loaders import UnstructuredWordDocumentLoader
 from langchain_community.document_loaders import CSVLoader
 from langchain_community.document_loaders import UnstructuredHTMLLoader
 from langchain_community.document_loaders import UnstructuredExcelLoader
+from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_community.document_loaders import BSHTMLLoader
+from langchain_community.document_loaders import UnstructuredPowerPointLoader
 from ..utils.encoding import detect_encoding
 import traceback
 from readservice.utils.logger import get_logger
@@ -188,4 +191,74 @@ class UnstructuredExcelLD(BaseLoader):
             traceback_str = traceback.format_exc()
             logger.error(error_message)
             logger.debug(traceback_str)       
+            return iter([]), error_message
+        
+class PyMuPDFLD(BaseLoader):
+    def load(self, file_path: str) -> Tuple[Iterator[Document], Optional[str]]:
+        try:
+            loader = PyMuPDFLoader(file_path)
+            return iter(loader.load()), None
+        except Exception as e:
+            error_message = f"Error processing {file_path} with PyMuPDFLoader: {e}"
+            traceback_str = traceback.format_exc()
+            logger.error(error_message)
+            logger.debug(traceback_str)
+            return iter([]), error_message
+
+    def lazy_load(self, file_path: str) -> Tuple[Iterator[Document], Optional[str]]:
+        try:
+            loader = PyMuPDFLoader(file_path)
+            return loader.lazy_load(), None
+        except Exception as e:
+            error_message = f"Error processing {file_path} with PyMuPDFLoader: {e}"
+            traceback_str = traceback.format_exc()
+            logger.error(error_message)
+            logger.debug(traceback_str)
+            return iter([]), error_message
+
+
+class BSHTMLLD(BaseLoader):
+    def load(self, file_path: str) -> Tuple[Iterator[Document], Optional[str]]:
+        try:
+            loader = BSHTMLLoader(file_path)
+            return iter(loader.load()), None
+        except Exception as e:
+            error_message = f"Error processing {file_path} with BSHTMLLoader: {e}"
+            traceback_str = traceback.format_exc()
+            logger.error(error_message)
+            logger.debug(traceback_str)
+            return iter([]), error_message
+
+    def lazy_load(self, file_path: str) -> Tuple[Iterator[Document], Optional[str]]:
+        try:
+            loader = BSHTMLLoader(file_path)
+            return loader.lazy_load(), None
+        except Exception as e:
+            error_message = f"Error processing {file_path} with BSHTMLLoader: {e}"
+            traceback_str = traceback.format_exc()
+            logger.error(error_message)
+            logger.debug(traceback_str)
+            return iter([]), error_message
+
+class UnstructuredPowerPointLD(BaseLoader):
+    def load(self, file_path: str) -> Tuple[Iterator[Document], Optional[str]]:
+        try:
+            loader = UnstructuredPowerPointLoader(file_path, mode="elements")
+            return iter(loader.load()), None
+        except Exception as e:
+            error_message = f"Error processing {file_path} with UnstructuredPowerPointLoader: {e}"
+            traceback_str = traceback.format_exc()
+            logger.error(error_message)
+            logger.debug(traceback_str)
+            return iter([]), error_message
+
+    def lazy_load(self, file_path: str) -> Tuple[Iterator[Document], Optional[str]]:
+        try:
+            loader = UnstructuredPowerPointLoader(file_path)
+            return loader.lazy_load(), None
+        except Exception as e:
+            error_message = f"Error processing {file_path} with UnstructuredPowerPointLoader: {e}"
+            traceback_str = traceback.format_exc()
+            logger.error(error_message)
+            logger.debug(traceback_str)
             return iter([]), error_message

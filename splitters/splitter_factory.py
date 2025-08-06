@@ -1,4 +1,4 @@
-from .splitters import getRecursiveCharacterTextSplitter, getTokenTextSplitter, getNLTKTextSplitter
+from .splitters import getRecursiveCharacterTextSplitter, getTokenTextSplitter, getNLTKTextSplitter, getSpacyTextSplitter
 
 def get_splitter(splitter_type: str, config: dict):
     
@@ -10,6 +10,8 @@ def get_splitter(splitter_type: str, config: dict):
         return getTokenTextSplitter(splitter_config)
     elif splitter_type == "NLTKTextSplitter":
         return getNLTKTextSplitter(splitter_config)
+    elif splitter_type == "SpacyTextSplitter":
+        return getSpacyTextSplitter(splitter_config)
     elif splitter_type == "none":
         return None
     else:

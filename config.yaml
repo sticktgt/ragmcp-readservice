@@ -1,16 +1,22 @@
 splitters:
   RecursiveCharacterTextSplitter:
       chunk_size: 1000
-      chunk_overlap: 50
-      separators: ["\n\n", "\n", " ", ""]
+      chunk_overlap: 100
+      separators: ["\n\n", "\n", ".", "!", "?", " ", ""]
+      keep_separator : True
   TokenTextSplitter:
-      chunk_size: 500
-      chunk_overlap: 50
-      encoding_name: cl100k_base
+      chunk_size: 800
+      chunk_overlap: 100
+      encoding_name: cl100k_base # "cl100k_base", "p50k_base", "r50k_base" ...
+      model_name: gpt-3.5-turbo # "gpt-3.5-turbo", "gpt-4", "text-embedding-ada-002", "gpt-3.5-turbo-16k", "gpt-4-1106-preview" ....
   NLTKTextSplitter:
       chunk_size: 800
       chunk_overlap: 100
       language: russian
+  SpacyTextSplitter:
+      chunk_size: 800
+      chunk_overlap: 100
+      pipeline: en_core_web_sm # 'sentencizer' ...
 
 file_types:
   .txt:
@@ -21,7 +27,7 @@ file_types:
     splitter: none
   .pdf:
     loader: PDFPlumberLoader
-    splitter: TokenTextSplitter
+    splitter: NLTKTextSplitter
   .docx:
     loader: UnstructuredWordDocumentLoader
     splitter: NLTKTextSplitter
@@ -29,8 +35,11 @@ file_types:
     loader: UnstructuredExcelLoader
     splitter: none
   .html:
-    loader: UnstructuredHTMLLoader
+    loader: BSHTMLLoader
     splitter: TokenTextSplitter
+  .pptx:
+    loader: UnstructuredPowerPointLoader
+    splitter: NLTKTextSplitter
 
 embedding:
   provider: langchain_fake # "yandexGPT", "liteLLM" or "langchain_fake" ("fake" for 000 dummy embeddings)
@@ -49,7 +58,7 @@ embedding:
     disable_request_logging: false
 
 sources:
-  use_local: false
+  use_local: true
   use_s3: false
   local_path: ./local_docs
   s3:
