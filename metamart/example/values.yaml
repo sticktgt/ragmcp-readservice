@@ -1,0 +1,21 @@
+subjectArea: readservice-test-project
+metadata:
+  labels:
+    components: cronjob-readservice
+    entity: readservice
+command: ["/bin/bash"]
+args: ["-c", "python -m readservice.main"]
+env:
+  delete_old_vectors:
+    value: true
+  embedding:
+    provider:
+      value: yandexGPT
+  sources:
+    use_local:
+      value: true
+    use_s3:
+      value: true
+  storage:
+    store_type:
+      value: milvus

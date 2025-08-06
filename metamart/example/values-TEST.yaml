@@ -1,0 +1,36 @@
+
+namespace: app-fdd      
+image: readservice:latest
+pullPolicy: IfNotPresent
+schedule: "*/10 * * * *"
+concurrencyPolicy: Forbid
+successfulJobsHistoryLimit: 2
+failedJobsHistoryLimit: 2
+restartPolicy: OnFailure
+backoffLimit: 1
+startingDeadlineSeconds: 30
+env:
+  embedding:
+    yandexGPT:
+      api_key:
+        valueFrom:
+          secretKeyRef:
+            name: readservice-secrets
+            key: yandex-api-key
+      folder_id:
+        valueFrom:
+          secretKeyRef:
+            name: readservice-secrets
+            key: yandex-folder-id
+  storage:
+    milvus:
+      url:
+        value: http://172.17.0.1:19530
+volumeMounts:
+   - name: local-docs
+     mountPath: /app/local_docs
+volumes:
+  - name: local-docs
+    hostPath:
+      path: /home/stickt/python/local_docs
+      type: Directory

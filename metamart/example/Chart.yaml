@@ -1,0 +1,13 @@
+apiVersion: v2
+name: test-cron-job
+version: 0.1.0
+description: Test cronJob deployment chart
+type: application
+app.dognauts:
+  subjectArea: readservice-test-project
+  sourceMetafileRepo: 
+  sourceMetafileBranch: main
+  sourceMetafileName: meta-job-document-loader
+annotations:
+  app.dognauts/platform-generated: true
+  app.dognauts/subjectArea: readservice-test-project

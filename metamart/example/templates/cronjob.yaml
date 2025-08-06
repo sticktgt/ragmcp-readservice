@@ -1,0 +1,100 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-inference
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "common.helm-labels" . | nindent 4 }}
+  {{- if .Values.metadata }}
+  {{- if .Values.metadata.labels }}
+  {{- range $k, $v :=.Values.metadata.labels }}
+    {{ $k }}: {{ $v }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- if .labels }}
+  {{- range $k, $v :=.labels }}
+    {{ $k }}: {{ $v }}
+  {{- end }}
+  {{- end }}
+  {{- if or (and .Values.metadata .Values.metadata.annotations) .annotations }}
+  annotations:
+  {{- end }}
+  {{- if .Values.metadata }}
+  {{- if .Values.metadata.annotations }}
+  {{- range $k, $v := .Values.metadata.annotations }}
+    {{ $k }}: {{ $v }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- if .annotations }}
+  {{- range $k, $v := .annotations }}
+    {{ $k }}: {{ $v }}
+  {{- end }}
+  {{- end }}
+spec:
+  schedule: "{{ .Values.schedule }}"
+  {{- if .Values.concurrencyPolicy }}
+  concurrencyPolicy: {{ .Values.concurrencyPolicy }}
+  {{- end }}
+  {{- if .Values.successfulJobsHistoryLimit }}
+  successfulJobsHistoryLimit: {{ .Values.successfulJobsHistoryLimit }}
+  {{- end }}
+  {{- if .Values.failedJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.failedJobsHistoryLimit }}
+  {{- end }}
+  {{- if .Values.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ .Values.startingDeadlineSeconds }}
+  {{- end }}
+  jobTemplate:
+    spec:
+      {{- if .Values.backoffLimit }}
+      backoffLimit: {{ .Values.backoffLimit }}
+      {{- end }}
+      template:
+        spec:
+          containers:
+            - name: readservice
+              image: "{{ .Values.image }}"
+              {{- if .Values.pullPolicy }}
+              imagePullPolicy: {{ .Values.pullPolicy }}
+              {{- end }}
+              command: ["/bin/bash"]
+              args: ["-c", "python -m readservice.main"]
+              env:
+                {{ "\n" | trim }}{{ include "readservice.flattenEnv" .Values.env | indent 16 | trim }}
+              {{- if .Values.volumeMounts }}
+              volumeMounts:
+              {{- range .Values.volumeMounts }}
+               - name: {{ .name }}
+                 mountPath: {{ .mountPath }}
+                 {{- if .readOnly }}
+                 readOnly: {{ .readOnly }}
+                 {{- end }}
+              {{- end }}
+              {{- end }}
+          {{- if .Values.restartPolicy }}
+          restartPolicy: {{ .Values.restartPolicy }}
+          {{- end }}
+          {{- if .Values.volumes }}
+          volumes:
+            {{- range .Values.volumes }}
+            - name: {{ .name }}
+              {{- if .emptyDir }}
+              emptyDir:
+                {{- if .emptyDir.medium }}
+                medium: {{ .emptyDir.medium }}
+                {{- end }}
+                {{- if .emptyDir.sizeLimit }}
+                sizeLimit: {{ .emptyDir.sizeLimit }}
+                {{- end }}
+              {{- end }}
+              {{- if .hostPath }}
+              hostPath:
+                path: {{ .hostPath.path }}
+                {{- if .hostPath.type }}
+                type: {{ .hostPath.type }}
+                {{- end }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
