@@ -10,7 +10,7 @@ def save_metadata_entry(doc: Document, index: int, path: str):
         "process_id": os.getpid(),                        # Current process ID        
         "source_connector": doc.metadata.get("source_connector"),
         "source": doc.metadata.get("source"),
-        "source_hash": doc.metadata.get("source_hash"),
+        "hashcode": doc.metadata.get("hashcode"),
         "original_name": doc.metadata.get("original_name"),
         "created_at": doc.metadata.get("created_at"),
         "size_bytes": doc.metadata.get("size_bytes"),

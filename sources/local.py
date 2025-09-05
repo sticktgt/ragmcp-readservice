@@ -18,6 +18,7 @@ class LocalFileSource:
                 try:
                     relative_path = file_path.relative_to(self.root)
                     metadata = {
+                        "title": file_path.name.lower(),
                         "original_name": file_path.name.lower(),
                         "source": str(relative_path.parent).lower(),  # <-- directory part only
                         "size_bytes": os.path.getsize(file_path),

@@ -38,6 +38,7 @@ class S3FileSource:
                         data = response["Body"].read()
                         relative_path = key[len(self.prefix):].lstrip("/")  # remove prefix and leading slash
                         metadata = {
+                            "title": Path(key).name.lower(),
                             "original_name": Path(key).name.lower(),
                             "source": str(Path(relative_path).parent).lower(),  # directory only,
                             "size_bytes": obj.get("Size"),
