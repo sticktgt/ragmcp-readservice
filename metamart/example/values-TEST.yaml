@@ -1,12 +1,11 @@
 
-namespace: app-fdd      
+namespace: app-fdd
 image: readservice:latest
 pullPolicy: IfNotPresent
 schedule: "*/10 * * * *"
 concurrencyPolicy: Forbid
 successfulJobsHistoryLimit: 2
 failedJobsHistoryLimit: 2
-restartPolicy: OnFailure
 backoffLimit: 1
 startingDeadlineSeconds: 30
 env:

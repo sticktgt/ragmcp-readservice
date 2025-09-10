@@ -5,6 +5,7 @@ metadata:
     entity: readservice
 command: ["/bin/bash"]
 args: ["-c", "python -m readservice.main"]
+restartPolicy: OnFailure
 env:
   delete_old_vectors:
     value: true
