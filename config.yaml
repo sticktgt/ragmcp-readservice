@@ -92,7 +92,7 @@ search:
   search_top_k: 5
 
 output_dir: ./output_docs
-stop_on_error: false
+stop_on_error: true
 
 debug: false # additional debug logging and actions
 delete_old_vectors: false # delete documents if found a hash match in metadata
