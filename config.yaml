@@ -46,7 +46,7 @@ embedding:
   dim: 256
   liteLLM:
     model: yandex-embedding
-    api_base: http://172.17.0.1:4000
+    api_base: http://10.121.130.63:4000
     api_key: $$$$S
     folder_id: $$$$$
   yandexGPT:
@@ -64,7 +64,7 @@ sources:
   s3:
     s3_bucket: files
     s3_prefix: ""
-    endpoint_url: http://172.17.0.1:9000
+    endpoint_url: http://10.121.130.63:9000
     aws_access_key_id: minioadmin
     aws_secret_access_key: minioadmin
     use_ssl: false
@@ -73,13 +73,13 @@ sources:
 storage:
   store_type: pgvector # "milvus" or "pgvector"
   milvus:
-    uri: http://172.17.0.1:19530  # "https://username:password@in01-12a.aws-us-west-2.vectordb.zillizcloud.com:19538
+    uri: http://10.121.130.63:19530  # "https://username:password@in01-12a.aws-us-west-2.vectordb.zillizcloud.com:19538
     collection: doc_vectors
     drop_old: false
     auto_id: true
     alias: default
   pgvector:
-    host: 172.17.0.1
+    host: 10.121.130.63
     port: 5432
     user: postgres
     password: postgres
@@ -92,5 +92,7 @@ search:
   search_top_k: 5
 
 output_dir: ./output_docs
-debug: false
-delete_old_vectors: false
+stop_on_error: false
+
+debug: false # additional debug logging and actions
+delete_old_vectors: false # delete documents if found a hash match in metadata

@@ -104,10 +104,11 @@ def handle_file(file_id: str, content: Optional[bytes], meta: dict,
         logger.debug(traceback.format_exc())
         return -1
 
-def process_streaming():
+def process_streaming() -> bool:
     doc_index = 0
     docs_count = 0
     store = None
+    had_fatal_error = False
     try:
         output_dir = CONFIG["output_dir"]
         os.makedirs(output_dir, exist_ok=True)
@@ -136,11 +137,14 @@ def process_streaming():
                     result = handle_file(file_id, content, meta, store, doc_index, err_log, output_dir, meta_path)
                     if result < 0:
                         logger.critical(f"[FATAL] Aborting due to error in file: {file_id}")
-                        return
+                        had_fatal_error = True
+                        break
+                        # return
                     elif result > 0:
                         doc_index += result
                         docs_count += 1
-
+                if had_fatal_error:
+                    break
             err_log.flush()
 
         logger.info("Processed documents count: %d", docs_count)
@@ -151,3 +155,4 @@ def process_streaming():
 
     finally:
         logger.debug("")
+        return not had_fatal_error
