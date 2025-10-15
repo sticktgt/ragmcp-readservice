@@ -18,13 +18,13 @@ LOADER_MAPPING: dict[str, Type[BaseLoader]] = {
     "PDFPlumberLoader": PDFPlumberLD,
     "Docx2txtLoader": Docx2txtLD,
     "UnstructuredWordDocumentLoader": UnstructuredWordDocumentLD,
-    "PDFPlumberLoader": TextLD,
-    "TextLoader": CSVLD,
+    "TextLoader": TextLD,
+    "CSVLoader": CSVLD,
     "UnstructuredHTMLLoader": UnstructuredHTMLLD,
     "UnstructuredExcelLoader": UnstructuredExcelLD,
     "PyMuPDFLoader": PyMuPDFLD,
     "BSHTMLLoader": BSHTMLLD,
-    "UnstructuredPowerPointLoader": UnstructuredPowerPointLD
+    "UnstructuredPowerPointLoader": UnstructuredPowerPointLD,
 }
 
 
