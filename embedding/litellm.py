@@ -3,7 +3,7 @@ from langchain_openai import OpenAIEmbeddings
 from readservice.utils.logger import get_logger
 from .base import BaseEmbedder
 import json
-from ..config import CONFIG
+from ..config import get_config
 
 import tiktoken
 from tiktoken import model
@@ -11,6 +11,7 @@ from tiktoken import model
 logger = get_logger()
 
 # === patch tiktoken to support custom model ===
+CONFIG = get_config()
 CUSTOM_MODEL_NAME = CONFIG["embedding"]["liteLLM"].get("model", "yandex-embedding")
 FALLBACK_ENCODING_NAME = "cl100k_base"
 

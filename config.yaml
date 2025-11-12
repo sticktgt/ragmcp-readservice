@@ -7,8 +7,9 @@ splitters:
   TokenTextSplitter:
       chunk_size: 800
       chunk_overlap: 100
-      encoding_name: cl100k_base # "cl100k_base", "p50k_base", "r50k_base" ...
-      model_name: gpt-3.5-turbo # "gpt-3.5-turbo", "gpt-4", "text-embedding-ada-002", "gpt-3.5-turbo-16k", "gpt-4-1106-preview" ....
+      encoding_name: cl100k_base # "cl100k_base", "o200k_base", "p50k_base", "r50k_base" - are cached ...
+      # model_name: gpt-3.5-turbo 
+      # optionally put model_name instead of encoding_name "gpt-3.5-turbo", "gpt-4", "text-embedding-ada-002", "gpt-3.5-turbo-16k", "gpt-4-1106-preview" ....
   NLTKTextSplitter:
       chunk_size: 800
       chunk_overlap: 100
@@ -42,16 +43,16 @@ file_types:
     splitter: NLTKTextSplitter
 
 embedding:
-  provider: langchain_fake # "yandexGPT", "liteLLM" or "langchain_fake" ("fake" for 000 dummy embeddings)
+  provider: liteLLM # "yandexGPT", "liteLLM" or "langchain_fake" ("fake" for 000 dummy embeddings)
   dim: 256
   liteLLM:
     model: yandex-embedding
-    api_base: http://10.121.130.63:4000
-    api_key: $$$$S
-    folder_id: $$$$$
+    api_base: http://localhost:4000
+    api_key: $$$$$$$$$$$$$$$$$$$
+    folder_id: $$$$$$$$$$$$$$$$$$$
   yandexGPT:
-    api_key: $$$$$
-    folder_id: $$$$$
+    api_key: $$$$$$$$$$$$$$$$$$$
+    folder_id: $$$$$$$$$$$$$$$$$$$
     doc_model_name: text-search-doc
     model_version: latest
     sleep_interval: 2.0
@@ -64,7 +65,7 @@ sources:
   s3:
     s3_bucket: files
     s3_prefix: ""
-    endpoint_url: http://10.121.130.63:9000
+    endpoint_url: http://localhost:9000
     aws_access_key_id: minioadmin
     aws_secret_access_key: minioadmin
     use_ssl: false
@@ -73,13 +74,13 @@ sources:
 storage:
   store_type: pgvector # "milvus" or "pgvector"
   milvus:
-    uri: http://10.121.130.63:19530  # "https://username:password@in01-12a.aws-us-west-2.vectordb.zillizcloud.com:19538
+    uri: http://localhost:19530  # "https://username:password@in01-12a.aws-us-west-2.vectordb.zillizcloud.com:19538
     collection: doc_vectors
     drop_old: false
     auto_id: true
     alias: default
   pgvector:
-    host: 10.121.130.63
+    host: localhost
     port: 5432
     user: postgres
     password: postgres
@@ -91,8 +92,11 @@ search:
   search_query: "the work of a data analyst"
   search_top_k: 5
 
+timeouts:
+  perFileSeconds: 90   # hard stop per document
+
 output_dir: ./output_docs
 stop_on_error: true
 
 debug: false # additional debug logging and actions
-delete_old_vectors: false # delete documents if found a hash match in metadata
+delete_old_vectors: false # delete documents if found a hash match in metadata for a test purpose only

@@ -17,7 +17,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Install Python dependencies
 COPY requirements.txt .
 COPY constraints.txt .
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt -c constraints.txt
+
+RUN pip install --upgrade pip setuptools wheel \
+ && pip install --no-cache-dir -r requirements.txt -c constraints.txt
+
+ENV TIKTOKEN_CACHE_DIR=/opt/tiktoken-cache
+RUN mkdir -p "$TIKTOKEN_CACHE_DIR" && chmod -R 755 "$TIKTOKEN_CACHE_DIR"
+
+# TokenTextSplitter pre-cache tiktoken encodings
+RUN python -c "import tiktoken; [tiktoken.get_encoding(n) for n in ['cl100k_base','o200k_base','p50k_base','r50k_base']]; print('[tiktoken] cache populated')"
 
 RUN mkdir -p /usr/share/nltk_data && \
     python -m nltk.downloader -d /usr/share/nltk_data punkt averaged_perceptron_tagger

@@ -5,6 +5,8 @@ from readservice.utils.logger import get_logger
 
 logger = get_logger()
 
+_CONFIG_CACHE = None
+
 DEFAULT_CONFIG_PATH = Path(__file__).parent / "config.yaml"
 
 def load_yaml_config(file_path: Path) -> dict:
@@ -82,4 +84,8 @@ def load_config(config_path: Path = DEFAULT_CONFIG_PATH) -> dict:
     
     return base_config
 
-CONFIG = load_config()
+def get_config() -> dict:
+    global _CONFIG_CACHE
+    if _CONFIG_CACHE is None:
+        _CONFIG_CACHE = load_config()
+    return _CONFIG_CACHE

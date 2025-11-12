@@ -21,7 +21,7 @@ class PGVectorStore(VectorStoreBase):
         }
 
         # Build the connection string dynamically
-        logger.info(f"Using PGVector at {cfg["pgvector"]['host']}:{cfg["pgvector"]['port']}")
+        logger.debug(f"Using PGVector at {cfg["pgvector"]['host']}:{cfg["pgvector"]['port']}")
         connection_string = (
             f"postgresql+psycopg2://{cfg["pgvector"]['user']}:{cfg["pgvector"]['password']}"
             f"@{cfg["pgvector"]['host']}:{cfg["pgvector"].get('port', 5432)}/{cfg["pgvector"]['database']}"

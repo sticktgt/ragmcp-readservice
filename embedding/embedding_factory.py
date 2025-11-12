@@ -1,4 +1,4 @@
-from readservice.config import CONFIG
+#from readservice.config import CONFIG
 from .yandex import YandexEmbedder
 from .dummy import CustomDummyEmbedder, LangchainFakeEmbedder
 from .litellm import LiteLLMEmbedder

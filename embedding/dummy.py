@@ -1,7 +1,7 @@
 from typing import List
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
-from readservice.config import CONFIG
+from readservice.config import get_config
 from .base import BaseEmbedder
 from readservice.utils.logger import get_logger
 from langchain_community.embeddings import FakeEmbeddings
@@ -28,6 +28,7 @@ class LangchainFakeEmbedder(BaseEmbedder):
 #  2. Your custom dummy implementation
 class CustomDummyEmbeddings(Embeddings):
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        CONFIG = get_config()
         dim = CONFIG["embedding"]["dim"]
         return [[0.01 * i for i in range(1, dim + 1)] for _ in texts]
 

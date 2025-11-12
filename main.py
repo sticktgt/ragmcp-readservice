@@ -1,10 +1,11 @@
 # main.py
 from readservice.processor import process_streaming
-from readservice.config import CONFIG
+from readservice.config import get_config
 import sys
 import logging
 
 logger = logging.getLogger("readservice")
+CONFIG = get_config()
 STOP_ON_ERROR = bool(CONFIG.get("stop_on_error", True))
 
 def handle_uncaught_exception(exctype, value, tb):
