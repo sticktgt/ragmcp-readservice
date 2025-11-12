@@ -78,6 +78,11 @@ export RS__SPLITTERS__TOKENTEXTSPLITTER__DISALLOWED_SPECIAL=all
   docker build --pull --rm -f 'readservice/Dockerfile' -t 'readservice:latest' 'readservice'
   ```
 - Пример запуска:
+
+  ```bash
+  docker run --rm -it --add-host=host.docker.internal:host-gateway -e "RS__EMBEDDING__PROVIDER=liteLLM" -e "RS__EMBEDDING__LITELLM__API_BASE=http://host.docker.internal:4000" -e "RS__EMBEDDING__LITELLM__API_KEY=********" -e "RS__EMBEDDING__LITELLM__FOLDER_ID=********" -e "RS__SOURCES__USE_LOCAL=true" -e "RS__SOURCES__USE_S3=true" -e "RS__SOURCES__S3__ENDPOINT_URL=http://host.docker.internal:9000" -e "RS__STORAGE__STORE_TYPE=pgvector" -e "RS__STORAGE__PGVECTOR__HOST=host.docker.internal" -v /home/stickt/python/local_docs:/app/local_docs readservice:latest
+  ```
+
   ```bash
   docker run --rm -it -e "RS__EMBEDDING__PROVIDER=yandexGPT" -e "RS__EMBEDDING__YANDEXGPT__API_KEY=********" -e "RS__EMBEDDING__YANDEXGPT__FOLDER_ID=********" -e "RS__SOURCES__USE_LOCAL=true" -e "RS__SOURCES__USE_S3=true" -e "RS__STORAGE__STORE_TYPE=milvus" -e "RS__DELETE_OLD_VECTORS=true" -v /home/local_docs:/app/local_docs readservice:latest /bin/bash
 
@@ -88,12 +93,12 @@ export RS__SPLITTERS__TOKENTEXTSPLITTER__DISALLOWED_SPECIAL=all
 ---
 
 ### Kubernetes CronJob
-пример в папке `example`
+пример в папке `example` - cronjob.yaml
 
 ---
 
 ### Создание Helm Chart-а возможно через сервис-шаблонизатор
-шаблон в папке `metamart`
+шаблон в папке `metamart` - meta-job-document-loader.yaml (values.json - пример входных данных)
 
 ---
 
@@ -103,6 +108,22 @@ export RS__SPLITTERS__TOKENTEXTSPLITTER__DISALLOWED_SPECIAL=all
 python -m readservice.main
 ```
 Без задания envirinment переменных сервис будет запущен с параметрами по-умолчанию из `config.yaml`
+
+---
+
+### LiteLLM plugin для YandexGPT
+
+пример в папке `liteLLM`
+ - litellm.yaml - конфигурация liteLLM
+ - custom_handler.py - plugin для YandexGPT
+
+ запуск:
+ ```bash
+ export TOOL_FLATTEN_MAX_CHARS=999999
+ litellm --config litellm.yaml
+ ```
+
+ другие поддерживаемые env переменные, если использовать независимо от сервиса: YANDEX_API_KEY, YANDEX_FOLDER_ID, YANDEX_MODEL (для /acompletion и /astreaming), YANDEX_DISABLE_LOGGING
 
 ---
 
